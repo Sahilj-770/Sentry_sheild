@@ -15,6 +15,8 @@ def parse_configuration(configuration, vendor):
 
         # Logging and time
         "logging_configured": False,
+        "logging_console_disabled": False,
+        "centralized_logging_configured": False,
         "ntp_configured": False,
 
         # Security protocols
@@ -23,13 +25,29 @@ def parse_configuration(configuration, vendor):
         # Authentication
         "aaa_configured": False,
         "weak_password_policy": False,
+        "password_min_length": None,
         "login_protection": False,
+
+        # Credential security (NEVER store actual passwords)
+        "has_plaintext_users": False,
+        "plaintext_account_names": [],
+        "has_privileged_plaintext_user": False,
+        "has_weak_enable_password": False,
+
+        # Cryptography & SSH details
+        "ssh_configured": False,
+        "ssh_v1_enabled": False,
+        "rsa_key_modulus": None,
+        "weak_rsa_key": False,
+
+        # Access control lists
+        "overly_permissive_acl": False,
+        "permissive_acl_rules": [],
 
         # Services
         "unnecessary_services": False,
 
         # Junos / SSH management checks
-        "ssh_v1_enabled": False,
         "ssh_root_login_allowed": False
     }
 
@@ -63,12 +81,13 @@ def parse_configuration(configuration, vendor):
         for line in configuration_lines:
             line_l = line.lower()
             tokens = line_l.split()
+            raw_tokens = line.split()
             if not tokens:
                 continue
 
             # Hostname
-            if tokens[0] == "hostname" and len(tokens) > 1:
-                data["hostname"] = line.split()[1]
+            if tokens[0] == "hostname" and len(raw_tokens) > 1:
+                data["hostname"] = raw_tokens[1]
 
             # AAA
             if tokens[:2] == ["aaa", "new-model"]:
@@ -91,11 +110,13 @@ def parse_configuration(configuration, vendor):
                 elif "all" in opts:
                     data["telnet_enabled"] = True
                     data["ssh_enabled"] = True
+                    data["ssh_configured"] = True
                 else:
                     if "telnet" in opts:
                         data["telnet_enabled"] = True
                     if "ssh" in opts:
                         data["ssh_enabled"] = True
+                        data["ssh_configured"] = True
             elif tokens[:3] == ["no", "transport", "input"]:
                 opts = tokens[3:]
                 if not opts or "all" in opts:
@@ -107,6 +128,33 @@ def parse_configuration(configuration, vendor):
                     if "ssh" in opts:
                         data["ssh_enabled"] = False
 
+            # SSH Protocol Version
+            if tokens[:3] == ["ip", "ssh", "version"]:
+                data["ssh_configured"] = True
+                if len(tokens) > 3:
+                    ver = tokens[3]
+                    if ver in ["1", "v1"]:
+                        data["ssh_v1_enabled"] = True
+                    elif ver in ["2", "v2"]:
+                        data["ssh_v1_enabled"] = False
+                        data["ssh_enabled"] = True
+            elif tokens[:2] == ["ip", "ssh"]:
+                data["ssh_configured"] = True
+
+            # Crypto Key RSA Modulus
+            if tokens[:4] == ["crypto", "key", "generate", "rsa"]:
+                data["ssh_configured"] = True
+                if "modulus" in tokens:
+                    m_idx = tokens.index("modulus")
+                    if m_idx + 1 < len(tokens):
+                        try:
+                            mod = int(tokens[m_idx + 1])
+                            data["rsa_key_modulus"] = mod
+                            if mod < 2048:
+                                data["weak_rsa_key"] = True
+                        except ValueError:
+                            pass
+
             # SNMP Public Community
             if tokens[:3] == ["snmp-server", "community", "public"]:
                 data["snmp_public"] = True
@@ -115,18 +163,25 @@ def parse_configuration(configuration, vendor):
             elif tokens[:2] == ["no", "snmp-server"]:
                 data["snmp_public"] = False
 
-            # Logging
+            # Logging: Console vs Centralized/Remote
+            if tokens[:3] == ["no", "logging", "console"]:
+                data["logging_console_disabled"] = True
+
             if tokens[0] == "logging":
                 if len(tokens) > 1:
                     sub = tokens[1]
                     if sub in ["host", "server", "buffered", "on", "trap"]:
                         data["logging_configured"] = True
+                        if sub in ["host", "server", "buffered"]:
+                            data["centralized_logging_configured"] = True
                     elif sub not in ["synchronous", "console", "monitor", "rate-limit", "userinfo"]:
-                        # e.g., logging 192.168.1.10
+                        # e.g., logging 10.0.0.50
                         data["logging_configured"] = True
+                        data["centralized_logging_configured"] = True
             elif tokens[:2] == ["no", "logging"]:
-                if len(tokens) == 2 or (len(tokens) > 2 and tokens[2] in ["on", "host", "server", "buffered"]):
+                if len(tokens) == 2 or (len(tokens) > 2 and tokens[2] in ["on", "host", "server"]):
                     data["logging_configured"] = False
+                    data["centralized_logging_configured"] = False
 
             # NTP
             if tokens[:2] in [["ntp", "server"], ["ntp", "peer"]]:
@@ -139,6 +194,73 @@ def parse_configuration(configuration, vendor):
                 data["login_protection"] = True
             elif tokens[:2] == ["no", "login"]:
                 data["login_protection"] = False
+
+            # Minimum Password Length Policy
+            if tokens[:3] == ["security", "passwords", "min-length"]:
+                if len(tokens) > 3:
+                    try:
+                        min_len = int(tokens[3])
+                        data["password_min_length"] = min_len
+                        if min_len < 10:
+                            data["weak_password_policy"] = True
+                    except ValueError:
+                        pass
+
+            # User Credentials & Privileges (NEVER store password values)
+            if tokens[0] == "username" and len(raw_tokens) > 2:
+                username_str = raw_tokens[1]
+                privilege_level = 1
+                if "privilege" in tokens:
+                    p_idx = tokens.index("privilege")
+                    if p_idx + 1 < len(tokens):
+                        try:
+                            privilege_level = int(tokens[p_idx + 1])
+                        except ValueError:
+                            pass
+
+                if "password" in tokens:
+                    data["has_plaintext_users"] = True
+                    if privilege_level == 15:
+                        data["has_privileged_plaintext_user"] = True
+                    data["plaintext_account_names"].append(f"{username_str} (privilege {privilege_level})")
+                    data["weak_password_policy"] = True
+                elif "secret" in tokens:
+                    s_idx = tokens.index("secret")
+                    secret_args = tokens[s_idx + 1:]
+                    if secret_args:
+                        val = secret_args[1] if secret_args[0] in ["0", "5", "8", "9"] and len(secret_args) > 1 else secret_args[0]
+                        if val in weak_passwords:
+                            data["weak_password_policy"] = True
+
+            # Enable Password (legacy / reversible / weak)
+            if tokens[:2] == ["enable", "password"]:
+                data["has_weak_enable_password"] = True
+                data["weak_password_policy"] = True
+            elif tokens[:2] == ["enable", "secret"]:
+                secret_args = tokens[2:]
+                if secret_args:
+                    val = secret_args[1] if secret_args[0] in ["0", "5", "8", "9"] and len(secret_args) > 1 else secret_args[0]
+                    if val in weak_passwords:
+                        data["weak_password_policy"] = True
+
+            # Line configuration passwords (e.g. password under line vty/console)
+            if tokens[0] == "password" or "password 7" in line_l:
+                data["weak_password_policy"] = True
+
+            # Access Control Lists (ACL): Overly permissive rules
+            if tokens[0] == "access-list" and len(tokens) > 2:
+                rest_tokens = tokens[2:]
+                if rest_tokens == ["permit", "any"] or (
+                    len(rest_tokens) >= 3
+                    and rest_tokens[:3] == ["permit", "ip", "any"]
+                    and (len(rest_tokens) == 3 or rest_tokens[3] == "any")
+                ):
+                    data["overly_permissive_acl"] = True
+                    data["permissive_acl_rules"].append(line)
+            elif tokens[0] == "permit" and "any" in tokens:
+                if tokens == ["permit", "any"] or tokens[:4] == ["permit", "ip", "any", "any"]:
+                    data["overly_permissive_acl"] = True
+                    data["permissive_acl_rules"].append(line)
 
             # Unnecessary Services
             if tokens[0] != "no":
@@ -154,40 +276,9 @@ def parse_configuration(configuration, vendor):
                 ):
                     other_unnecessary = True
 
-            # Weak Password Policy
-            if tokens[0] != "no":
-                # enable password (plaintext or type 7)
-                if tokens[:2] == ["enable", "password"]:
-                    data["weak_password_policy"] = True
-
-                # enable secret <val>
-                elif tokens[:2] == ["enable", "secret"]:
-                    secret_args = tokens[2:]
-                    if secret_args:
-                        val = secret_args[1] if secret_args[0] in ["0", "5", "8", "9"] and len(secret_args) > 1 else secret_args[0]
-                        if val in weak_passwords:
-                            data["weak_password_policy"] = True
-
-                # username <name> password <val> or username <name> secret <val>
-                elif tokens[0] == "username" and len(tokens) > 2:
-                    rest = tokens[2:]
-                    if "password" in rest:
-                        data["weak_password_policy"] = True
-                    elif "secret" in rest:
-                        s_idx = rest.index("secret")
-                        secret_args = rest[s_idx + 1:]
-                        if secret_args:
-                            val = secret_args[1] if secret_args[0] in ["0", "5", "8", "9"] and len(secret_args) > 1 else secret_args[0]
-                            if val in weak_passwords:
-                                data["weak_password_policy"] = True
-
-                # password under line configuration or password 7
-                elif tokens[0] == "password":
-                    data["weak_password_policy"] = True
-
-                # explicit password 7 command anywhere
-                elif "password 7" in line_l:
-                    data["weak_password_policy"] = True
+        # Default weak password policy if min-length was never set
+        if data.get("password_min_length") is None and not data.get("weak_password_policy"):
+            data["weak_password_policy"] = True
 
         data["unnecessary_services"] = other_unnecessary or data["http_enabled"]
 

@@ -1,3 +1,4 @@
+import html
 import os
 from pathlib import Path
 from reportlab.lib.pagesizes import A4
@@ -23,7 +24,7 @@ def generate_audit_pdf(
     - Title: Network Security Audit Report
     - Basic Information (Audit ID, Vendor)
     - Security Score (/100)
-    - Security Findings table with Severity
+    - Security Findings table with Severity, Rule ID, and Evidence
     - Suggestions / Remediation
     - Audit Verification QR code with explanatory text
     """
@@ -78,25 +79,33 @@ def generate_audit_pdf(
 
     if findings:
         table_data = [[
-            Paragraph("<b>Issue</b>", normal_style),
+            Paragraph("<b>Rule ID &amp; Issue</b>", normal_style),
+            Paragraph("<b>Evidence / Details</b>", normal_style),
             Paragraph("<b>Severity</b>", normal_style)
         ]]
 
         for finding in findings:
-            issue_text = finding.get("issue", "")
-            severity_text = finding.get("severity", "")
+            rule_id = html.escape(str(finding.get("rule_id", "")))
+            issue_text = html.escape(str(finding.get("issue", "")))
+            evidence_text = html.escape(str(finding.get("evidence") or finding.get("description", "")))
+            severity_text = html.escape(str(finding.get("severity", "")))
+
+            # Prepend rule ID if present
+            col1 = f"<b>[{rule_id}]</b><br/>{issue_text}" if rule_id else issue_text
+
             table_data.append([
-                Paragraph(issue_text, normal_style),
-                Paragraph(severity_text, normal_style)
+                Paragraph(col1, normal_style),
+                Paragraph(f"<code>{evidence_text}</code>" if evidence_text else "N/A", normal_style),
+                Paragraph(f"<b>{severity_text}</b>", normal_style)
             ])
 
-        table = Table(table_data, colWidths=[360, 110])
+        table = Table(table_data, colWidths=[215, 220, 75])
         table.setStyle(
             TableStyle([
                 ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
                 ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
                 ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                ("PADDING", (0, 0), (-1, -1), 6),
+                ("PADDING", (0, 0), (-1, -1), 5),
             ])
         )
         story.append(table)
