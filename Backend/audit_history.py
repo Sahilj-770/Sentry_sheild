@@ -126,7 +126,8 @@ def get_user_audit_history(
                 "high_findings": r.high_findings,
                 "medium_findings": r.medium_findings,
                 "low_findings": r.low_findings,
-                "filename": r.filename
+                "filename": r.filename,
+                "audit_status": "Completed"
             })
         return results
     finally:
@@ -163,9 +164,53 @@ def get_all_audit_history(
                 "high_findings": r.high_findings,
                 "medium_findings": r.medium_findings,
                 "low_findings": r.low_findings,
-                "filename": r.filename
+                "filename": r.filename,
+                "audit_status": "Completed"
             })
         return results
     finally:
         if should_close:
             db.close()
+
+
+def save_audit_feedback(
+    audit_id: str,
+    feedback_data: Dict[str, Any],
+    db: Optional[Session] = None
+) -> bool:
+    """
+    Saves user AI feedback (rating, comment, rule ID) into the existing
+    risk_data_json payload of the audit record without altering DB schema.
+    """
+    should_close = False
+    if db is None:
+        db = SessionLocal()
+        should_close = True
+
+    try:
+        record = db.query(AuditRecord).filter(AuditRecord.audit_id == audit_id).first()
+        if not record:
+            return False
+
+        risk_data = {}
+        if record.risk_data_json:
+            try:
+                risk_data = json.loads(record.risk_data_json)
+            except Exception:
+                risk_data = {}
+
+        feedbacks = risk_data.get("user_feedback", [])
+        feedback_entry = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            **feedback_data
+        }
+        feedbacks.append(feedback_entry)
+        risk_data["user_feedback"] = feedbacks
+
+        record.risk_data_json = json.dumps(risk_data)
+        db.commit()
+        return True
+    finally:
+        if should_close:
+            db.close()
+

@@ -12,7 +12,7 @@ client = TestClient(app)
 
 def run_tests():
     print("==================================================")
-    print("RUNNING AEGISNET SECURITY & AUTHENTICATION TESTS")
+    print("RUNNING SENTRY SECURITY & AUTHENTICATION TESTS")
     print("==================================================")
 
     # 1. Health check

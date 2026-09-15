@@ -47,10 +47,13 @@ from risk_score import calculate_risk_score
 from ai_explainer import explain_findings
 from qr_generator import generate_audit_qr
 from pdf_report import generate_audit_pdf
-from audit_history import save_audit_record, get_user_audit_history, get_all_audit_history
+from audit_history import save_audit_record, get_user_audit_history, get_all_audit_history, save_audit_feedback
+from network_scanner import run_network_scan, check_nmap_available, validate_scan_target
+from threat_intel import threat_intel_service
+from integrations import enterprise_integrations
 
 # Setup server logger
-logger = logging.getLogger("aegisnet.backend")
+logger = logging.getLogger("sentry.backend")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
 
@@ -61,14 +64,14 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Initialize database tables and seed demo accounts on startup
-    logger.info("Initializing AegisNet database and seeding SIH demo credentials...")
+    logger.info("Initializing Sentry database and seeding SIH demo credentials...")
     init_db(hash_func=hash_password)
     logger.info("Database initialized successfully.")
     yield
 
 
 app = FastAPI(
-    title="AegisNet Network Security Auditor API",
+    title="Sentry — Network Security & Compliance Auditing Platform API",
     version="2.0.0",
     description="Deterministic & AI-Assisted Network Security Compliance Engine for SIH 2026",
     lifespan=lifespan
@@ -158,6 +161,26 @@ class AuditReportRequest(BaseModel):
     suggestions: Optional[List[str]] = None
 
 
+class NetworkScanRequest(BaseModel):
+    target: str = Field(..., min_length=1, max_length=255)
+    ports: Optional[str] = Field(None, max_length=100)
+
+
+class ThreatIntelLookupRequest(BaseModel):
+    rule_id: str = Field(..., min_length=2, max_length=100)
+
+
+class IntegrationTestRequest(BaseModel):
+    service: str = Field(..., pattern="^(siem|ticketing|notifications|slack)$")
+    payload: Optional[Dict[str, Any]] = None
+
+
+class AuditFeedbackRequest(BaseModel):
+    rating: str = Field(..., pattern="^(helpful|unhelpful|positive|negative)$")
+    feedback_text: Optional[str] = Field(None, max_length=1000)
+    rule_id: Optional[str] = Field(None, max_length=100)
+
+
 # ==============================================================================
 # PUBLIC ROUTES
 # ==============================================================================
@@ -165,7 +188,7 @@ class AuditReportRequest(BaseModel):
 @app.get("/")
 def home():
     return {
-        "message": "AegisNet Network Security Compliance Auditor Backend is running",
+        "message": "Sentry Network Security Compliance Auditor Backend is running",
         "version": "2.0.0",
         "status": "online"
     }
@@ -361,6 +384,9 @@ def audit_configuration(
     # Step 2: Run deterministic security rules
     findings = run_security_rules(parsed_data)
 
+    # Step 2b: Enrich with authoritative threat intelligence (CVE/CVSS)
+    findings = threat_intel_service.enrich_findings(findings)
+
     # Step 3: Calculate risk score
     risk = calculate_risk_score(findings)
 
@@ -420,6 +446,9 @@ async def upload_config_file(
     # 5. Run deterministic security checks
     findings = run_security_rules(parsed_data)
 
+    # 5b. Enrich with threat intelligence
+    findings = threat_intel_service.enrich_findings(findings)
+
     # 6. Calculate risk score
     risk = calculate_risk_score(findings)
 
@@ -472,6 +501,9 @@ def get_audit_by_id(
     findings = json.loads(record.findings_json) if record.findings_json else []
     risk_data = json.loads(record.risk_data_json) if record.risk_data_json else {}
 
+    # Ensure findings are enriched with CVE / threat intelligence
+    findings = threat_intel_service.enrich_findings(findings)
+
     return {
         "audit_id": record.audit_id,
         "timestamp": record.timestamp,
@@ -485,6 +517,7 @@ def get_audit_by_id(
         "medium_findings": record.medium_findings,
         "low_findings": record.low_findings,
         "filename": record.filename,
+        "audit_status": "Completed",
         "findings": findings,
         "risk_data": risk_data
     }
@@ -654,3 +687,127 @@ def admin_create_user(
         role=new_user.role,
         created_at=new_user.created_at
     )
+
+
+# ==============================================================================
+# SCANNER, THREAT INTEL, INTEGRATIONS & AI FEEDBACK ENDPOINTS
+# ==============================================================================
+
+@app.get("/api/scanner/status")
+def get_scanner_status(user: User = Depends(get_current_user)):
+    """
+    Checks if active Nmap network port scanner binary is available in PATH.
+    Reports honest status if unconfigured.
+    """
+    available = check_nmap_available()
+    return {
+        "available": available,
+        "status": "Ready (Nmap detected)" if available else "Nmap integration available — scanner not configured",
+        "description": "Enterprise network port scanner for validating live exposed services against audit rules."
+    }
+
+
+@app.post("/api/scanner/scan")
+def trigger_network_scan(
+    data: NetworkScanRequest,
+    user: User = Depends(get_current_user)
+):
+    """
+    Executes a controlled network port scan on the target address.
+    Strictly validates target against command injection.
+    """
+    try:
+        result = run_network_scan(target=data.target, ports=data.ports)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@app.get("/api/threat-intel/status")
+def get_threat_intel_status(user: User = Depends(get_current_user)):
+    """
+    Reports the operational status of the AI threat intelligence service.
+    """
+    return threat_intel_service.get_status()
+
+
+@app.post("/api/threat-intel/lookup")
+def lookup_threat_intel(
+    data: ThreatIntelLookupRequest,
+    user: User = Depends(get_current_user)
+):
+    """
+    Queries local / external threat intelligence for a given rule ID or protocol.
+    """
+    intel = threat_intel_service.lookup_rule(data.rule_id)
+    if not intel:
+        return {
+            "found": False,
+            "rule_id": data.rule_id,
+            "message": "No specific CVE mapped for this rule ID; standard compliance guideline applies."
+        }
+    return {
+        "found": True,
+        "rule_id": data.rule_id,
+        "intel": intel
+    }
+
+
+@app.get("/api/integrations/status")
+def get_integrations_status(user: User = Depends(get_current_user)):
+    """
+    Returns live connectivity and configuration status of enterprise webhooks:
+    SIEM (Splunk/Elastic/QRadar), Ticketing (Jira/ServiceNow), Notifications (Slack/Teams).
+    """
+    return enterprise_integrations.get_status()
+
+
+@app.post("/api/integrations/test")
+def test_integration_dispatch(
+    data: IntegrationTestRequest,
+    user: User = Depends(get_current_user)
+):
+    """
+    Dispatches a sample security event to an enterprise webhook.
+    Returns honest unconfigured status if webhook URL is not provided in env.
+    """
+    test_payload = data.payload or {
+        "event": "SENTRY_SECURITY_ALERT_TEST",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "severity": "HIGH",
+        "message": f"Test alert dispatched to {data.service} from Sentry Network Security Auditing Platform."
+    }
+    result = enterprise_integrations.send_event(data.service, test_payload)
+    return result
+
+
+@app.post("/api/audits/{audit_id}/feedback")
+def submit_audit_feedback(
+    audit_id: str,
+    data: AuditFeedbackRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Submits user feedback (thumbs up / thumbs down / rating) for AI remediation guidance.
+    Safely persisted inside existing audit record's risk_data_json without database migration.
+    """
+    success = save_audit_feedback(
+        audit_id=audit_id,
+        feedback_data={
+            "user_id": user.id,
+            "user_email": user.email,
+            "rating": data.rating,
+            "feedback_text": data.feedback_text,
+            "rule_id": data.rule_id
+        },
+        db=db
+    )
+    if not success:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Audit record not found.")
+
+    return {
+        "message": "Audit feedback recorded successfully",
+        "audit_id": audit_id,
+        "rating": data.rating
+    }

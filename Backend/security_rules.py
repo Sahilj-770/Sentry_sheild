@@ -1,3 +1,35 @@
+
+# =============================================================================
+# AUTHORITATIVE COMPLIANCE & FRAMEWORK POLICY MAPPINGS
+# =============================================================================
+RULE_FRAMEWORK_MAPPINGS = {
+    "CISCO-TELNET-001": ["CIS Cisco IOS Benchmark v8 (1.1)", "NIST SP 800-53 (AC-17)", "DISA STIG (NET-040)"],
+    "CISCO-SSH-001": ["CIS Cisco IOS Benchmark v8 (1.2)", "NIST SP 800-53 (IA-5, SC-8)", "DISA STIG (NET-045)"],
+    "CISCO-SSH-002": ["CIS Cisco IOS Benchmark v8 (1.2)", "NIST SP 800-53 (AC-17)", "ISO/IEC 27001 (A.9.4.2)"],
+    "CISCO-CRYPTO-001": ["NIST SP 800-131A", "CIS Cisco IOS Benchmark v8 (1.3)", "DISA STIG"],
+    "CISCO-AUTH-001": ["CIS Cisco IOS Benchmark v8 (1.4)", "NIST SP 800-53 (IA-5)", "ISO/IEC 27001 (A.9.4.2)"],
+    "CISCO-AUTH-002": ["CIS Cisco IOS Benchmark v8 (1.5)", "NIST SP 800-53 (IA-5)", "DISA STIG"],
+    "CISCO-SNMP-001": ["CIS Cisco IOS Benchmark v8 (1.6)", "NIST SP 800-53 (SC-8)", "DISA STIG (NET-080)"],
+    "CISCO-WEB-001": ["CIS Cisco IOS Benchmark v8 (1.7)", "NIST SP 800-53 (AC-17)", "DISA STIG"],
+    "CISCO-AAA-001": ["CIS Cisco IOS Benchmark v8 (1.8)", "NIST SP 800-53 (AC-2, IA-2)"],
+    "CISCO-PWD-001": ["CIS Cisco IOS Benchmark v8 (1.9)", "NIST SP 800-53 (IA-5)", "ISO/IEC 27001 (A.9.4.3)"],
+    "CISCO-LOGIN-001": ["CIS Cisco IOS Benchmark v8 (1.10)", "NIST SP 800-53 (AC-7)"],
+    "CISCO-LOG-001": ["CIS Cisco IOS Benchmark v8 (2.1)", "NIST SP 800-53 (AU-2, AU-3)"],
+    "CISCO-ACL-001": ["CIS Cisco IOS Benchmark v8 (3.1)", "NIST SP 800-53 (AC-4)", "ISO/IEC 27001 (A.13.1.1)"],
+    # Multi-vendor / Generic
+    "NET-001": ["CIS Benchmark", "NIST SP 800-53 (AC-17)"],
+    "NET-002": ["CIS Benchmark", "NIST SP 800-53 (AC-17)"],
+    "NET-003": ["CIS Benchmark", "NIST SP 800-53 (IA-5, SC-8)"],
+    "NET-004": ["CIS Benchmark", "NIST SP 800-53 (SC-8)"],
+    "NET-005": ["CIS Benchmark", "NIST SP 800-53 (AC-17)"],
+    "NET-006": ["CIS Benchmark", "NIST SP 800-53 (AC-3, IA-2)"],
+    "NET-007": ["CIS Benchmark", "NIST SP 800-53 (AC-4)"],
+    "NET-008": ["CIS Benchmark", "NIST SP 800-53 (CM-7)"],
+    "NET-009": ["CIS Benchmark", "NIST SP 800-53 (AC-6)"],
+    "LOG-001": ["CIS Benchmark", "NIST SP 800-53 (AU-2, AU-3)"],
+    "NTP-001": ["CIS Benchmark", "NIST SP 800-53 (AU-8)"]
+}
+
 def run_security_rules(parsed_data):
     """
     Runs deterministic security checks on the parsed configuration
@@ -373,4 +405,8 @@ def run_security_rules(parsed_data):
                 "remediation": "Disallow direct root login over SSH ('set system services ssh root-login deny')."
             })
 
+    for f in findings:
+        r_id = f.get("rule_id", "")
+        if "frameworks" not in f:
+            f["frameworks"] = RULE_FRAMEWORK_MAPPINGS.get(r_id, ["CIS Benchmark", "NIST SP 800-53"])
     return findings

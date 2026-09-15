@@ -1,6 +1,6 @@
-# SIH2026 Backend
+# Sentry — Network Security & Compliance Auditing Platform (Backend)
 
-AI-Driven Multi-Vendor Network Security Compliance Auditor
+Sentry is an automated network security and compliance auditing platform that analyzes network configurations, identifies security vulnerabilities and compliance gaps, evaluates the overall security posture, and provides actionable remediation recommendations.
 
 ## Tech Stack
 

@@ -34,13 +34,21 @@ def detect_vendor(configuration):
     ):
         return "Juniper"
 
+    # Palo Alto (checked before Fortinet to prevent 'deviceconfig system' substring collision)
+    elif any(marker in configuration for marker in ["set deviceconfig", "pan-os", "paloalto", "palo alto"]):
+        return "Palo Alto"
+
     # Fortinet
-    elif "config system" in configuration or "fortigate" in configuration:
+    elif any(marker in configuration for marker in ["config system ", "config system\n", "config firewall", "fortigate", "fortinet"]):
         return "Fortinet"
 
-    # Palo Alto
-    elif "set deviceconfig" in configuration or "pan-os" in configuration:
-        return "Palo Alto"
+    # Arista EOS
+    elif any(marker in configuration for marker in ["arista", "boot system flash:", "management api http-commands"]):
+        return "Arista"
+
+    # pfSense
+    elif any(marker in configuration for marker in ["<pfsense>", "<pfsense", "pfsense", "<webgui>", "<sshd>"]):
+        return "pfSense"
 
     # Huawei
     elif "sysname" in configuration or "huawei" in configuration:
