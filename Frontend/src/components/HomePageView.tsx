@@ -1,25 +1,23 @@
 import React from 'react';
 import { 
-  Shield, 
-  Cpu, 
   Server, 
   FileCheck2, 
   ArrowRight, 
   Layers, 
-  ArrowLeft,
-  CheckCircle2,
-  AlertTriangle,
-  Upload,
-  Terminal,
-  FileText,
-  Activity
+  CheckCircle2, 
+  AlertTriangle, 
+  Upload, 
+  Terminal, 
+  FileText, 
+  Activity 
 } from 'lucide-react';
-import { ThemeToggle } from './ThemeToggle';
+import { Navbar } from './Navbar';
+import { Footer } from './Footer';
 
 interface HomePageViewProps {
-  onBackToLanding: () => void;
-  onExplore: () => void;
-  onOpenAuth: (mode: 'login' | 'signup') => void;
+  onBackToLanding?: () => void;
+  onExplore?: () => void;
+  onOpenAuth?: (mode: 'login' | 'signup') => void;
   currentUser?: { name: string; email: string; role?: string } | null;
 }
 
@@ -42,149 +40,90 @@ const COMPLIANCE_FRAMEWORKS = [
 
 const CORE_CAPABILITIES = [
   {
-    icon: <Layers className="w-5 h-5 text-cyan-400" />,
+    icon: <Layers className="w-5 h-5 text-[var(--accent)]" />,
     title: 'Multi-Vendor AST Normalization',
     description: 'Universal syntax parser translating heterogeneous device configurations into unified security models without vendor lock-in.'
   },
   {
-    icon: <CheckCircle2 className="w-5 h-5 text-emerald-400" />,
+    icon: <CheckCircle2 className="w-5 h-5 text-[var(--success)]" />,
     title: 'Deterministic Benchmark Auditing',
     description: 'Strict programmatic evaluation against CIS & NIST baselines with reproducible 0–100 scoring and zero hallucinations.'
   },
   {
-    icon: <AlertTriangle className="w-5 h-5 text-amber-400" />,
+    icon: <AlertTriangle className="w-5 h-5 text-[var(--warning)]" />,
     title: 'Offline CVE Threat Intelligence',
     description: 'Built-in CVE database correlating misconfigurations (Telnet, weak crypto, permissive ACLs) with actual CVSS threat metrics.'
   },
   {
-    icon: <Activity className="w-5 h-5 text-cyan-400" />,
+    icon: <Activity className="w-5 h-5 text-[var(--cyan-telemetry)]" />,
     title: 'Continuous Drift Detection',
     description: 'Identifies unauthorized administrative protocol changes, insecure SNMP strings, and boundary policy deviations.'
   },
   {
-    icon: <Terminal className="w-5 h-5 text-emerald-400" />,
+    icon: <Terminal className="w-5 h-5 text-[var(--text-primary)]" />,
     title: 'One-Click Remediation Playbooks',
     description: 'Generates ready-to-deploy, vendor-specific CLI configuration blocks to patch identified gaps without manual research.'
   },
   {
-    icon: <FileText className="w-5 h-5 text-slate-300" />,
+    icon: <FileText className="w-5 h-5 text-[var(--text-secondary)]" />,
     title: 'Auditor-Certified PDF Export',
     description: 'Server-side ReportLab document generator with cryptographic Ed25519 verification QR tags for compliance proof.'
   }
 ];
 
 export const HomePageView: React.FC<HomePageViewProps> = ({
-  onBackToLanding,
   onExplore,
   onOpenAuth,
-  currentUser,
 }) => {
   return (
-    <div className="min-h-screen bg-[#0f1117] text-slate-100 flex flex-col selection:bg-cyan-500 selection:text-slate-950 cyber-grid relative overflow-x-hidden">
+    <div className="min-h-screen bg-[var(--bg-app)] text-[var(--text-primary)] flex flex-col selection:bg-[var(--accent)] selection:text-white relative overflow-x-hidden">
       
-      {/* Top Browser Bar */}
-      <header className="sticky top-0 z-30 w-full bg-[#131722]/95 backdrop-blur-md border-b border-slate-800 text-xs text-slate-400 py-2.5 px-4 sm:px-6 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <a href="/index.html" className="flex items-center gap-2 mr-1">
-            <div className="relative flex items-center justify-center w-7 h-7 rounded-lg bg-cyan-950 border border-cyan-500/40 text-cyan-400">
-              <Shield className="w-4 h-4" />
-              <Cpu className="w-2.5 h-2.5 text-emerald-400 absolute" />
-            </div>
-            <span className="font-bold text-white text-xs tracking-tight hidden lg:inline">
-              Sentry <span className="text-slate-300 font-semibold">Shield</span>
-            </span>
-          </a>
-
-          <button
-            onClick={onBackToLanding}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 hover:border-cyan-400 text-slate-300 hover:text-white text-xs font-semibold transition-colors cursor-pointer"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Landing Page</span>
-          </button>
-
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-md bg-slate-950 border border-slate-800 font-mono text-[11px] text-cyan-400">
-            <span className="text-slate-500">https://</span>
-            <span className="text-white font-semibold">sentry.network</span>
-            <span className="text-cyan-400">/home</span>
-          </div>
-        </div>
-
-        {/* Global Page Links & Theme Toggle */}
-        <nav className="flex items-center gap-3 sm:gap-4 text-xs font-semibold">
-          <a href="/index.html" className="text-slate-400 hover:text-cyan-400 transition-colors hidden md:inline">
-            Landing
-          </a>
-          <a href="/dashboard.html" className="text-slate-400 hover:text-cyan-400 transition-colors">
-            Dashboard
-          </a>
-          <a href="/upload.html" className="text-cyan-400 hover:text-white transition-colors">
-            Upload &amp; Audit
-          </a>
-          <a href="/result.html" className="text-slate-400 hover:text-cyan-400 transition-colors hidden sm:inline">
-            Results
-          </a>
-          
-          {currentUser ? (
-            <div className="flex items-center gap-2">
-              <span className="text-slate-400 font-mono text-[11px] hidden sm:inline">{currentUser.name}</span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => onOpenAuth('login')}
-                className="text-xs text-cyan-400 hover:text-white cursor-pointer"
-              >
-                Sign In
-              </button>
-            </div>
-          )}
-          <ThemeToggle />
-        </nav>
-      </header>
+      {/* Standardized Navbar */}
+      <Navbar activePage="home" onOpenAuth={onOpenAuth} />
 
       {/* Main Container */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex-1 flex flex-col space-y-8 relative z-10">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full flex-1 flex flex-col space-y-10 relative z-10">
         
         {/* Header Hero Section */}
-        <div className="p-6 sm:p-8 rounded-3xl bg-[#161c28] border border-slate-800 shadow-xl relative overflow-hidden">
+        <div className="sentry-card p-6 sm:p-8 relative overflow-hidden">
           <div className="max-w-3xl space-y-4">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900 border border-slate-700 text-xs font-mono text-cyan-400">
-              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
-              <span>Autonomous Network Compliance Portal</span>
+            <div className="sentry-badge">
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)]"></span>
+              <span>AUTONOMOUS NETWORK COMPLIANCE PLATFORM</span>
             </div>
             
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-tight">
-              Enterprise Network Security &amp; Compliance Hub
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-[var(--text-primary)] tracking-tight leading-tight uppercase">
+              Enterprise Network Security <br className="hidden sm:inline" />
+              <span className="text-[var(--text-secondary)] font-light">&amp; Compliance Hub</span>
             </h1>
             
-            <p className="text-sm sm:text-base text-slate-300 leading-relaxed">
+            <p className="text-sm sm:text-base text-[var(--text-secondary)] leading-relaxed">
               Sentry Shield automatically parses raw running-configurations from multi-vendor network switches, firewalls, and edge routers. It identifies security misconfigurations, cross-references known CVE vulnerabilities, and scores compliance against CIS Controls v8 and NIST SP 800-53 standards.
             </p>
 
             <div className="flex flex-wrap items-center gap-3 pt-2">
               <a
                 href="/upload.html"
-                className="px-5 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs uppercase tracking-wider flex items-center gap-2 transition-all shadow-md shadow-cyan-500/10"
+                className="sentry-btn-primary"
               >
-                <Upload className="w-4 h-4" />
+                <Upload className="w-3.5 h-3.5" />
                 <span>Upload Configuration</span>
               </a>
 
               <a
                 href="/dashboard.html"
-                className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-2 transition-all"
+                className="sentry-btn-secondary"
               >
-                <Server className="w-4 h-4 text-cyan-400" />
-                <span>Auditor Console</span>
+                <Server className="w-3.5 h-3.5 text-[var(--text-muted)]" />
+                <span>SecOps Console</span>
               </a>
 
               <a
                 href="/result.html"
-                className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-2 transition-all"
+                className="sentry-btn-secondary"
               >
-                <FileCheck2 className="w-4 h-4 text-emerald-400" />
-                <span>View Security Reports</span>
+                <FileCheck2 className="w-3.5 h-3.5 text-[var(--success)]" />
+                <span>Security Results</span>
               </a>
             </div>
           </div>
@@ -192,29 +131,29 @@ export const HomePageView: React.FC<HomePageViewProps> = ({
 
         {/* Section: Core Technical Capabilities */}
         <div>
-          <div className="mb-4">
-            <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider font-mono">
+          <div className="mb-5">
+            <div className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider font-mono">
               Core Technical Capabilities
-            </h2>
-            <p className="text-lg font-bold text-white mt-0.5">
+            </div>
+            <h2 className="text-xl font-bold text-[var(--text-primary)] mt-0.5">
               Automated Audit &amp; Threat Intelligence Engine
-            </p>
+            </h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {CORE_CAPABILITIES.map((cap, idx) => (
               <div 
                 key={idx}
-                className="p-5 rounded-2xl bg-[#161c28] border border-slate-800 hover:border-slate-700 transition-all flex flex-col justify-between"
+                className="sentry-card p-5 sentry-card-hover flex flex-col justify-between"
               >
                 <div>
-                  <div className="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center mb-3">
+                  <div className="w-9 h-9 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border-subtle)] flex items-center justify-center mb-3">
                     {cap.icon}
                   </div>
-                  <h3 className="text-sm font-bold text-white mb-1.5">
+                  <h3 className="text-sm font-bold text-[var(--text-primary)] mb-1.5 font-mono">
                     {cap.title}
                   </h3>
-                  <p className="text-xs text-slate-400 leading-relaxed">
+                  <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
                     {cap.description}
                   </p>
                 </div>
@@ -225,17 +164,17 @@ export const HomePageView: React.FC<HomePageViewProps> = ({
 
         {/* Section: Multi-Vendor Hardware Support */}
         <div>
-          <div className="mb-4 flex items-center justify-between">
+          <div className="mb-5 flex items-center justify-between">
             <div>
-              <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider font-mono">
+              <div className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider font-mono">
                 Multi-Vendor Compatibility
+              </div>
+              <h2 className="text-xl font-bold text-[var(--text-primary)] mt-0.5">
+                Supported Appliance Configuration Formats
               </h2>
-              <p className="text-lg font-bold text-white mt-0.5">
-                Supported Network Device Formats
-              </p>
             </div>
-            <span className="text-[10px] font-mono px-2.5 py-1 rounded bg-slate-900 border border-slate-800 text-cyan-400">
-              Zero Proprietary Agents
+            <span className="sentry-tag bg-[var(--bg-surface)] text-[var(--text-muted)] border border-[var(--border-subtle)]">
+              7 Active AST Parsers
             </span>
           </div>
 
@@ -243,16 +182,16 @@ export const HomePageView: React.FC<HomePageViewProps> = ({
             {SUPPORTED_VENDORS.map((vendor, idx) => (
               <div
                 key={idx}
-                className="p-4 rounded-xl bg-[#161c28] border border-slate-800 hover:border-slate-700 transition-all"
+                className="sentry-card p-4 sentry-card-hover"
               >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="text-xs font-bold text-white">{vendor.name}</div>
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="text-xs font-bold text-[var(--text-primary)] font-mono">{vendor.name}</div>
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--success)]"></span>
                 </div>
-                <div className="text-[11px] text-slate-400">{vendor.category}</div>
-                <div className="mt-3 pt-2.5 border-t border-slate-800/80 flex items-center justify-between text-[10px] font-mono">
-                  <span className="text-slate-500">{vendor.format}</span>
-                  <span className="text-emerald-400 font-semibold">{vendor.status}</span>
+                <div className="text-[11px] text-[var(--text-muted)]">{vendor.category}</div>
+                <div className="mt-3 pt-2 border-t border-[var(--border-subtle)] flex items-center justify-between text-[10px] font-mono">
+                  <span className="text-[var(--text-muted)]">{vendor.format}</span>
+                  <span className="text-[var(--success)] font-semibold">{vendor.status}</span>
                 </div>
               </div>
             ))}
@@ -260,22 +199,22 @@ export const HomePageView: React.FC<HomePageViewProps> = ({
         </div>
 
         {/* Section: Security Frameworks Covered */}
-        <div className="p-6 rounded-3xl bg-[#161c28] border border-slate-800">
-          <div className="mb-4">
-            <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider font-mono">
+        <div className="sentry-card p-6 sm:p-7">
+          <div className="mb-5">
+            <div className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider font-mono">
               Regulatory &amp; Security Standards
-            </h2>
-            <p className="text-base font-bold text-white mt-0.5">
+            </div>
+            <h2 className="text-lg font-bold text-[var(--text-primary)] mt-0.5">
               Deterministic Rule Mapping &amp; Compliance Rubrics
-            </p>
+            </h2>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
             {COMPLIANCE_FRAMEWORKS.map((fw, idx) => (
-              <div key={idx} className="p-4 rounded-xl bg-slate-900/80 border border-slate-800/80">
-                <div className="text-xs font-bold text-cyan-400 font-mono mb-1">{fw.code}</div>
-                <div className="text-xs text-slate-300 font-medium mb-1.5">{fw.scope}</div>
-                <span className="text-[10px] px-2 py-0.5 rounded bg-slate-950 text-slate-400 font-mono border border-slate-800">
+              <div key={idx} className="p-3.5 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-subtle)]">
+                <div className="text-xs font-bold text-[var(--accent)] font-mono mb-1">{fw.code}</div>
+                <div className="text-xs text-[var(--text-primary)] font-medium mb-1.5">{fw.scope}</div>
+                <span className="sentry-tag bg-[var(--bg-card)] text-[var(--text-muted)] border border-[var(--border-subtle)]">
                   {fw.coverage}
                 </span>
               </div>
@@ -284,11 +223,11 @@ export const HomePageView: React.FC<HomePageViewProps> = ({
         </div>
 
         {/* Workflow Call to Action */}
-        <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-[#161c28] via-[#1a2130] to-[#161c28] border border-slate-700/80 text-center flex flex-col items-center space-y-3">
-          <h3 className="text-xl font-bold text-white">
+        <div className="sentry-card p-6 sm:p-8 text-center flex flex-col items-center space-y-3">
+          <h3 className="text-xl font-bold text-[var(--text-primary)] uppercase tracking-tight">
             Ready to audit your network infrastructure?
           </h3>
-          <p className="text-xs sm:text-sm text-slate-400 max-w-xl">
+          <p className="text-xs sm:text-sm text-[var(--text-secondary)] max-w-xl">
             Upload your configuration file or test our built-in vulnerable test configuration to inspect real-time detection, threat scoring, and CLI remediation.
           </p>
           <div className="pt-2">
@@ -300,15 +239,18 @@ export const HomePageView: React.FC<HomePageViewProps> = ({
                   onExplore();
                 }
               }}
-              className="px-6 py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs uppercase tracking-wider inline-flex items-center gap-2 shadow-lg shadow-cyan-500/10 transition-all"
+              className="sentry-btn-primary"
             >
               <span>Launch Configuration Audit Pipeline</span>
-              <ArrowRight className="w-4 h-4" />
+              <ArrowRight className="w-3.5 h-3.5" />
             </a>
           </div>
         </div>
 
       </main>
+
+      {/* Standardized Footer */}
+      <Footer />
 
     </div>
   );

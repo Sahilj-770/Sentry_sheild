@@ -4,7 +4,7 @@ import {
   AlertTriangle, 
   CheckCircle2, 
   RefreshCw, 
-  Download, 
+  ArrowRight, 
   Server, 
   Search
 } from 'lucide-react';
@@ -92,126 +92,126 @@ export const DashboardPreview: React.FC = () => {
   );
 
   return (
-    <section id="dashboard" className="py-20 bg-[#0f1117] border-t border-slate-800 relative">
+    <section id="dashboard" className="py-16 border-t border-[var(--border-subtle)] bg-[var(--bg-app)] relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Section Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
           <div>
-            <div className="flex items-center gap-2 text-cyan-400 text-xs font-mono font-bold tracking-wider uppercase mb-2">
-              <span className="w-2 h-2 rounded-full bg-cyan-400"></span>
-              Live Auditor Console
+            <div className="sentry-badge mb-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)]"></span>
+              <span>LIVE AUDITOR CONSOLE PREVIEW</span>
             </div>
-            <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
-              Network Compliance <span className="text-cyan-400">Dashboard</span>
+            <h2 className="text-3xl sm:text-4xl font-black text-[var(--text-primary)] tracking-tight uppercase">
+              Network Compliance <span className="text-[var(--text-secondary)] font-light">Console</span>
             </h2>
-            <p className="text-slate-400 text-sm mt-1 max-w-xl">
+            <p className="text-[var(--text-secondary)] text-sm mt-1 max-w-xl">
               Inspect verified device nodes, monitor CIS v8 benchmark compliance in real time, and trigger automated gap remedies.
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <button
               onClick={handleRunAudit}
               disabled={isScanning}
-              className="px-4 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs flex items-center gap-2 transition-all shadow-sm hover:shadow-cyan-500/10 cursor-pointer disabled:opacity-60"
+              className="sentry-btn-primary"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isScanning ? 'animate-spin' : ''}`} />
-              <span>{isScanning ? 'Auditing Mesh...' : 'Run Network Scan (Demo)'}</span>
+              <span>{isScanning ? 'Auditing Mesh...' : 'Simulate Scan (Demo)'}</span>
             </button>
 
-            <button
-              onClick={() => { window.location.href = '/dashboard.html'; }}
-              className="px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 hover:border-slate-500 text-slate-200 text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer"
+            <a
+              href="/dashboard.html"
+              className="sentry-btn-secondary"
             >
-              <Download className="w-3.5 h-3.5 text-slate-400" />
-              <span>Open Dashboard Console</span>
-            </button>
+              <span>Launch Dashboard</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </a>
           </div>
         </div>
 
         {/* Top Metric Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           
-          <div className="p-5 rounded-2xl bg-[#161c28] border border-cyan-500/25 shadow-lg">
-            <div className="flex items-center justify-between text-slate-400 text-xs mb-2">
+          <div className="sentry-card p-5">
+            <div className="flex items-center justify-between text-[var(--text-muted)] text-xs mb-1.5">
               <span>Overall Compliance Score</span>
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
+              <ShieldCheck className="w-4 h-4 text-[var(--success)]" />
             </div>
-            <div className="text-3xl font-black text-white font-mono">96.8%</div>
-            <div className="text-[11px] text-emerald-400 mt-1 flex items-center gap-1 font-medium">
-              <span>↑ +4.2% since last automated cycle</span>
+            <div className="text-2xl font-bold text-[var(--text-primary)] font-mono">96.8%</div>
+            <div className="text-[11px] text-[var(--success)] mt-1 flex items-center gap-1 font-mono font-medium">
+              <span>↑ +4.2% since scheduled cycle</span>
             </div>
           </div>
 
-          <div className="p-5 rounded-2xl bg-[#161c28] border border-slate-800 shadow-lg">
-            <div className="flex items-center justify-between text-slate-400 text-xs mb-2">
+          <div className="sentry-card p-5">
+            <div className="flex items-center justify-between text-[var(--text-muted)] text-xs mb-1.5">
               <span>Active Network Devices</span>
-              <Server className="w-4 h-4 text-cyan-400" />
+              <Server className="w-4 h-4 text-[var(--cyan-telemetry)]" />
             </div>
-            <div className="text-3xl font-black text-white font-mono">148 Nodes</div>
-            <div className="text-[11px] text-slate-400 mt-1">
-              Multi-vendor mesh verified
+            <div className="text-2xl font-bold text-[var(--text-primary)] font-mono">148 Nodes</div>
+            <div className="text-[11px] text-[var(--text-muted)] mt-1 font-mono">
+              Multi-vendor topology
             </div>
           </div>
 
-          <div className="p-5 rounded-2xl bg-[#161c28] border border-slate-800 shadow-lg">
-            <div className="flex items-center justify-between text-slate-400 text-xs mb-2">
+          <div className="sentry-card p-5">
+            <div className="flex items-center justify-between text-[var(--text-muted)] text-xs mb-1.5">
               <span>Open Remediation Gaps</span>
-              <AlertTriangle className="w-4 h-4 text-amber-400" />
+              <AlertTriangle className="w-4 h-4 text-[var(--accent)]" />
             </div>
-            <div className="text-3xl font-black text-amber-400 font-mono">3 Flagged</div>
-            <div className="text-[11px] text-slate-400 mt-1">
-              2 FortiOS drift, 1 NTP sync
+            <div className="text-2xl font-bold text-[var(--accent)] font-mono">3 Flagged</div>
+            <div className="text-[11px] text-[var(--text-muted)] mt-1 font-mono">
+              2 FortiOS drift, 1 Telnet
             </div>
           </div>
 
-          <div className="p-5 rounded-2xl bg-[#161c28] border border-slate-800 shadow-lg">
-            <div className="flex items-center justify-between text-slate-400 text-xs mb-2">
+          <div className="sentry-card p-5">
+            <div className="flex items-center justify-between text-[var(--text-muted)] text-xs mb-1.5">
               <span>QR Hardware Verified</span>
-              <CheckCircle2 className="w-4 h-4 text-cyan-400" />
+              <CheckCircle2 className="w-4 h-4 text-[var(--success)]" />
             </div>
-            <div className="text-3xl font-black text-cyan-400 font-mono">100%</div>
-            <div className="text-[11px] text-slate-400 mt-1">
-              Cryptographic hash valid
+            <div className="text-2xl font-bold text-[var(--text-primary)] font-mono">100%</div>
+            <div className="text-[11px] text-[var(--text-muted)] mt-1 font-mono">
+              Ed25519 hash signed
             </div>
           </div>
 
         </div>
 
         {/* Dashboard Content Panel */}
-        <div className="rounded-3xl bg-[#161c28] border border-slate-800 shadow-2xl overflow-hidden">
+        <div className="sentry-card overflow-hidden">
           
           {/* Table Controls */}
-          <div className="p-4 sm:p-5 border-b border-slate-800 flex flex-wrap items-center justify-between gap-4">
+          <div className="p-3.5 sm:p-4 border-b border-[var(--border-subtle)] flex flex-wrap items-center justify-between gap-3">
             
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <button
                 onClick={() => setActiveTab('devices')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                className={`px-3 py-1.5 rounded-md text-xs font-mono font-medium transition-colors ${
                   activeTab === 'devices' 
-                    ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40' 
-                    : 'text-slate-400 hover:text-white'
+                    ? 'bg-[var(--accent)] text-white' 
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)]'
                 }`}
               >
                 Network Nodes ({filteredDevices.length})
               </button>
               <button
                 onClick={() => setActiveTab('findings')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                className={`px-3 py-1.5 rounded-md text-xs font-mono font-medium transition-colors ${
                   activeTab === 'findings' 
-                    ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40' 
-                    : 'text-slate-400 hover:text-white'
+                    ? 'bg-[var(--accent)] text-white' 
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)]'
                 }`}
               >
                 Active CIS Findings (3)
               </button>
               <button
                 onClick={() => setActiveTab('logs')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                className={`px-3 py-1.5 rounded-md text-xs font-mono font-medium transition-colors ${
                   activeTab === 'logs' 
-                    ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40' 
-                    : 'text-slate-400 hover:text-white'
+                    ? 'bg-[var(--accent)] text-white' 
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)]'
                 }`}
               >
                 Real-Time Audit Log
@@ -219,14 +219,14 @@ export const DashboardPreview: React.FC = () => {
             </div>
 
             {/* Search Input */}
-            <div className="relative w-full sm:w-64">
-              <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-2.5" />
+            <div className="relative w-full sm:w-60">
+              <Search className="w-3.5 h-3.5 text-[var(--text-muted)] absolute left-3 top-2.5" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Filter by hostname or IP..."
-                className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg bg-slate-900 border border-slate-700 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-400"
+                placeholder="Filter hostname or IP..."
+                className="sentry-input pl-8 py-1 text-xs"
               />
             </div>
 
@@ -235,59 +235,59 @@ export const DashboardPreview: React.FC = () => {
           {/* Table or Viewport */}
           {activeTab === 'devices' && (
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs text-slate-300">
-                <thead className="bg-slate-900/60 text-slate-400 font-mono text-[11px] uppercase tracking-wider border-b border-slate-800">
+              <table className="w-full text-left text-xs text-[var(--text-secondary)]">
+                <thead className="bg-[var(--bg-surface)] text-[var(--text-muted)] font-mono text-[11px] uppercase tracking-wider border-b border-[var(--border-subtle)]">
                   <tr>
-                    <th className="py-3.5 px-5">Device Hostname</th>
-                    <th className="py-3.5 px-4">Vendor & Model</th>
-                    <th className="py-3.5 px-4">Management IP</th>
-                    <th className="py-3.5 px-4">Compliance</th>
-                    <th className="py-3.5 px-4">Audit Status</th>
-                    <th className="py-3.5 px-4 text-right">Last Audited</th>
+                    <th className="py-3 px-4">Device Hostname</th>
+                    <th className="py-3 px-4">Vendor & Model</th>
+                    <th className="py-3 px-4">Management IP</th>
+                    <th className="py-3 px-4">Compliance</th>
+                    <th className="py-3 px-4">Status</th>
+                    <th className="py-3 px-4 text-right">Last Audited</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/60">
+                <tbody className="divide-y divide-[var(--border-subtle)]">
                   {filteredDevices.map((device, idx) => (
-                    <tr key={idx} className="hover:bg-slate-800/30 transition-colors">
-                      <td className="py-3.5 px-5 font-mono font-semibold text-white flex items-center gap-2">
-                        <Server className="w-3.5 h-3.5 text-cyan-400" />
+                    <tr key={idx} className="hover:bg-[var(--bg-card-hover)] transition-colors">
+                      <td className="py-3 px-4 font-mono font-semibold text-[var(--text-primary)] flex items-center gap-2">
+                        <Server className="w-3.5 h-3.5 text-[var(--text-muted)]" />
                         <span>{device.hostname}</span>
                       </td>
-                      <td className="py-3.5 px-4">
-                        <div className="text-slate-200 font-medium">{device.vendor}</div>
-                        <div className="text-[11px] text-slate-500">{device.model}</div>
+                      <td className="py-3 px-4">
+                        <div className="text-[var(--text-primary)] font-medium">{device.vendor}</div>
+                        <div className="text-[10px] text-[var(--text-muted)] font-mono">{device.model}</div>
                       </td>
-                      <td className="py-3.5 px-4 font-mono text-slate-400">
+                      <td className="py-3 px-4 font-mono text-[var(--text-muted)]">
                         {device.ip}
                       </td>
-                      <td className="py-3.5 px-4">
+                      <td className="py-3 px-4">
                         <div className="flex items-center gap-2">
-                          <div className="w-16 h-2 rounded-full bg-slate-800 overflow-hidden">
+                          <div className="w-16 h-1.5 rounded-full bg-[var(--bg-subtle)] overflow-hidden">
                             <div 
                               className={`h-full rounded-full ${
-                                device.complianceScore >= 95 ? 'bg-emerald-400' : 'bg-amber-400'
+                                device.complianceScore >= 95 ? 'bg-[var(--success)]' : 'bg-[var(--warning)]'
                               }`}
                               style={{ width: `${device.complianceScore}%` }}
                             ></div>
                           </div>
-                          <span className="font-mono text-[11px] font-bold">
+                          <span className="font-mono text-[11px] font-bold text-[var(--text-primary)]">
                             {device.complianceScore}%
                           </span>
                         </div>
                       </td>
-                      <td className="py-3.5 px-4">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                      <td className="py-3 px-4">
+                        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono font-semibold ${
                           device.status === 'Compliant'
-                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
-                            : 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
+                            ? 'bg-[var(--success-muted)] text-[var(--success)] border border-[var(--success)]/30'
+                            : 'bg-[var(--warning-muted)] text-[var(--warning)] border border-[var(--warning)]/30'
                         }`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${
-                            device.status === 'Compliant' ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse'
+                          <span className={`w-1 h-1 rounded-full ${
+                            device.status === 'Compliant' ? 'bg-[var(--success)]' : 'bg-[var(--warning)]'
                           }`}></span>
                           {device.status}
                         </span>
                       </td>
-                      <td className="py-3.5 px-4 text-right font-mono text-slate-500">
+                      <td className="py-3 px-4 text-right font-mono text-[var(--text-muted)]">
                         {device.lastScan}
                       </td>
                     </tr>
@@ -298,35 +298,35 @@ export const DashboardPreview: React.FC = () => {
           )}
 
           {activeTab === 'findings' && (
-            <div className="p-6 space-y-4">
-              <div className="p-4 rounded-xl bg-amber-950/20 border border-amber-500/30 flex items-start gap-3">
-                <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+            <div className="p-5 space-y-3">
+              <div className="p-3.5 rounded-lg border border-[var(--accent)]/30 bg-[var(--accent-subtle)] flex items-start gap-3">
+                <AlertTriangle className="w-4 h-4 text-[var(--accent)] shrink-0 mt-0.5" />
                 <div className="text-xs space-y-1">
-                  <div className="font-bold text-amber-300">CIS 2.3.1: Telnet Service Active on edge-gw-fw.sih.net</div>
-                  <p className="text-slate-300">Insecure plaintext management protocol detected on management interface. Remediation: Disable telnet, enforce SSHv2 with Ed25519 keypair only.</p>
-                  <div className="font-mono text-cyan-400 pt-1 text-[11px]">$ sentry-cli fix --target edge-gw-fw --rule CIS-2.3.1 --auto</div>
+                  <div className="font-bold text-[var(--text-primary)] font-mono">CIS 2.3.1: Telnet Service Active on edge-gw-fw.sih.net</div>
+                  <p className="text-[var(--text-secondary)]">Insecure plaintext management protocol detected on management interface. Remediation: Disable telnet, enforce SSHv2 with Ed25519 keypair only.</p>
+                  <div className="font-mono text-[var(--text-muted)] pt-0.5 text-[11px]">$ sentry-cli fix --target edge-gw-fw --rule CIS-2.3.1 --auto</div>
                 </div>
               </div>
 
-              <div className="p-4 rounded-xl bg-amber-950/20 border border-amber-500/30 flex items-start gap-3">
-                <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+              <div className="p-3.5 rounded-lg border border-[var(--warning)]/30 bg-[var(--warning-muted)]/40 flex items-start gap-3">
+                <AlertTriangle className="w-4 h-4 text-[var(--warning)] shrink-0 mt-0.5" />
                 <div className="text-xs space-y-1">
-                  <div className="font-bold text-amber-300">NIST SP 800-53 AC-4: Unrestricted Ingress Port on dmz-vpn-node</div>
-                  <p className="text-slate-300">Permissive wildcard allow rule 0.0.0.0/0 on port 8080. Recommended restriction to authorized bastion CIDR.</p>
-                  <div className="font-mono text-cyan-400 pt-1 text-[11px]">$ sentry-cli acl-patch --device dmz-vpn-node --tighten</div>
+                  <div className="font-bold text-[var(--text-primary)] font-mono">NIST SP 800-53 AC-4: Insecure SNMP Community on dmz-vpn-node</div>
+                  <p className="text-[var(--text-secondary)]">Public default SNMP community string configured. Recommended restriction to SNMPv3 with SHA authentication.</p>
+                  <div className="font-mono text-[var(--text-muted)] pt-0.5 text-[11px]">$ sentry-cli snmp-harden --device dmz-vpn-node --v3-only</div>
                 </div>
               </div>
             </div>
           )}
 
           {activeTab === 'logs' && (
-            <div className="p-5 font-mono text-xs text-slate-300 bg-slate-950/70 space-y-1.5">
-              <div className="text-slate-500">[13:34:02 UTC] [CORE-DISPATCH] Starting scheduled automated CIS mesh inspection...</div>
-              <div className="text-emerald-400">[13:34:05 UTC] [CIS-EVAL] dist-spine02.sih.net: 184/184 benchmark items passed. (100%)</div>
-              <div className="text-cyan-400">[13:34:08 UTC] [QR-VERIFY] Hardware chassis hash Ed25519 authenticated for Catalyst 9300.</div>
-              <div className="text-amber-400">[13:34:11 UTC] [DRIFT-ALERT] Configuration drift noticed on FortiGate 100F (NTP stratum mismatch).</div>
-              <div className="text-cyan-300">[13:34:15 UTC] [AI-REASON] Auto-generating synthetic remediation playbook for SecOps approval...</div>
-              <div className="text-emerald-400">[13:34:20 UTC] [MESH-SECURE] Robot shield verification status: SECURED & MONITORED.</div>
+            <div className="p-4 font-mono text-xs text-[var(--text-secondary)] bg-[var(--bg-surface)] space-y-1">
+              <div className="text-[var(--text-muted)]">[13:34:02 UTC] [CORE-DISPATCH] Starting scheduled automated CIS mesh inspection...</div>
+              <div className="text-[var(--success)]">[13:34:05 UTC] [CIS-EVAL] dist-spine02.sih.net: 184/184 benchmark items passed. (100%)</div>
+              <div className="text-[var(--text-primary)]">[13:34:08 UTC] [QR-VERIFY] Hardware chassis hash Ed25519 authenticated for Catalyst 9300.</div>
+              <div className="text-[var(--warning)]">[13:34:11 UTC] [DRIFT-ALERT] Configuration drift noticed on FortiGate 100F (NTP stratum mismatch).</div>
+              <div className="text-[var(--text-secondary)]">[13:34:15 UTC] [AI-REASON] Auto-generating synthetic remediation playbook for SecOps approval...</div>
+              <div className="text-[var(--success)]">[13:34:20 UTC] [MESH-SECURE] Robot shield verification status: SECURED &amp; MONITORED.</div>
             </div>
           )}
 

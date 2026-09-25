@@ -1,20 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Cpu, LogIn, Menu, X, ArrowRight, LogOut, UserCheck } from 'lucide-react';
+import { Shield, Menu, X, ArrowRight, LogOut, UserCheck } from 'lucide-react';
 import { getStoredUser, logoutUser, getCurrentUserProfile } from '../utils/api';
 import type { UserProfile } from '../utils/api';
 import { ThemeToggle } from './ThemeToggle';
 
-interface NavbarProps {
+export interface NavbarProps {
+  activePage?: 'landing' | 'home' | 'dashboard' | 'upload' | 'results' | 'auth';
   onOpenAuth?: (mode: 'login' | 'signup') => void;
   onNavigateSection?: (sectionId: string) => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, onNavigateSection }) => {
+export const Navbar: React.FC<NavbarProps> = ({ activePage, onOpenAuth }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [user, setUser] = useState<UserProfile | null>(getStoredUser());
 
   useEffect(() => {
-    // Verify session on mount
+    // Verify session state on mount
     getCurrentUserProfile()
       .then(profile => setUser(profile))
       .catch(() => setUser(null));
@@ -26,101 +27,96 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, onNavigateSection })
     window.location.href = '/index.html';
   };
 
+  // Determine current active page from pathname if not explicitly passed
+  const getCurrentPage = (): string => {
+    if (activePage) return activePage;
+    if (typeof window === 'undefined') return 'landing';
+    const path = window.location.pathname.toLowerCase();
+    if (path.includes('homepage')) return 'home';
+    if (path.includes('dashboard')) return 'dashboard';
+    if (path.includes('upload')) return 'upload';
+    if (path.includes('result')) return 'results';
+    if (path.includes('login') || path.includes('signup')) return 'auth';
+    return 'landing';
+  };
+
+  const current = getCurrentPage();
+
+  const navItems = [
+    { id: 'landing', label: 'Landing', href: '/index.html' },
+    { id: 'home', label: 'Home', href: '/homepage.html' },
+    { id: 'dashboard', label: 'Dashboard', href: '/dashboard.html' },
+    { id: 'upload', label: 'Upload & Audit', href: '/upload.html' },
+    { id: 'results', label: 'Results', href: '/result.html' },
+  ];
+
   return (
-    <header className="sticky top-0 z-40 w-full backdrop-blur-md bg-[#0f1117]/90 border-b border-slate-800 transition-all">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between">
+    <header className="sticky top-0 z-40 w-full sentry-nav">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         
-        {/* Brand Logo matching wireframe "Name + logo" */}
+        {/* Brand Logo & Name */}
         <a 
           href="/index.html"
           className="flex items-center gap-3 group select-none"
         >
-          <div className="relative flex items-center justify-center w-11 h-11 rounded-xl bg-gradient-to-br from-cyan-500/20 via-blue-600/10 to-indigo-900/40 border border-cyan-400/40 shadow-lg shadow-cyan-500/10 group-hover:border-cyan-400 transition-all">
-            <Shield className="w-6 h-6 text-cyan-400 group-hover:scale-110 transition-transform" />
-            <Cpu className="w-3.5 h-3.5 text-emerald-400 absolute" />
-            <div className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></div>
+          <div className="relative flex items-center justify-center w-9 h-9 rounded-lg bg-[var(--bg-card)] border border-[var(--border-subtle)] group-hover:border-[var(--border-strong)] transition-all">
+            <Shield className="w-5 h-5 text-[var(--text-primary)] group-hover:scale-105 transition-transform" />
+            <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-[var(--accent)]"></span>
           </div>
-          <div>
+          <div className="flex flex-col">
             <div className="flex items-center gap-2">
-              <span className="text-xl font-black tracking-tight text-white group-hover:text-cyan-300 transition-colors">
-                Sentry <span className="font-semibold text-slate-300">Shield</span>
+              <span className="text-base font-bold tracking-tight text-[var(--text-primary)]">
+                Sentry <span className="font-normal text-[var(--text-secondary)]">Shield</span>
               </span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-950/80 text-cyan-300 border border-cyan-700/50 font-mono font-bold uppercase">
-                SIH AI
+              <span className="text-[10px] px-1.5 py-0.2 rounded font-mono font-bold tracking-wider uppercase border border-[var(--border-subtle)] text-[var(--text-muted)] bg-[var(--bg-surface)]">
+                v2.4
               </span>
             </div>
-            <p className="text-[11px] text-slate-400 hidden sm:block tracking-wide">
-              Network Security &amp; Compliance Platform
-            </p>
           </div>
         </a>
 
-        {/* Desktop Nav Links - Separate Page Hyperlinks */}
-        <nav className="hidden md:flex items-center gap-6 lg:gap-8 text-sm font-medium text-slate-300">
-          <a 
-            href="/index.html" 
-            className="hover:text-cyan-400 transition-colors"
-          >
-            Landing
-          </a>
-          <a 
-            href="/homepage.html" 
-            className="hover:text-cyan-400 transition-colors flex items-center gap-1.5"
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
-            Home Page
-          </a>
-          <a 
-            href="/dashboard.html" 
-            className="hover:text-cyan-400 transition-colors"
-          >
-            Dashboard
-          </a>
-          <a 
-            href="/upload.html" 
-            className="hover:text-cyan-400 transition-colors"
-          >
-            Upload & Audit
-          </a>
-          <a 
-            href="/result.html" 
-            className="hover:text-cyan-400 transition-colors"
-          >
-            Security Results
-          </a>
-          <a 
-            href="/index.html#contact" 
-            onClick={(e) => {
-              if (onNavigateSection) {
-                e.preventDefault();
-                onNavigateSection('contact');
-              }
-            }}
-            className="hover:text-cyan-400 transition-colors"
-          >
-            Contact
-          </a>
+        {/* Desktop Navigation Links */}
+        <nav className="hidden md:flex items-center gap-1 lg:gap-2">
+          {navItems.map((item) => {
+            const isActive = current === item.id;
+            return (
+              <a
+                key={item.id}
+                href={item.href}
+                className={`relative px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${
+                  isActive 
+                    ? 'text-[var(--text-primary)] bg-[var(--bg-card)] border border-[var(--border-subtle)] shadow-sm'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)]'
+                }`}
+              >
+                {isActive && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)]"></span>
+                )}
+                <span>{item.label}</span>
+              </a>
+            );
+          })}
         </nav>
 
-        {/* Action Buttons for User Session or Login / Signup + Theme Toggle */}
-        <div className="flex items-center gap-3">
+        {/* Actions: Theme Toggle + User Controls */}
+        <div className="flex items-center gap-2.5">
           <ThemeToggle />
+
           {user ? (
-            <div className="flex items-center gap-2.5">
-              <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700/80 text-xs">
-                <UserCheck className="w-3.5 h-3.5 text-cyan-400" />
-                <span className="text-white font-medium">{user.name}</span>
-                <span className={`text-[10px] uppercase font-mono px-1.5 py-0.5 rounded font-bold ${
-                  user.role === 'admin' 
-                    ? 'bg-purple-950 text-purple-300 border border-purple-700/60' 
-                    : 'bg-cyan-950 text-cyan-300 border border-cyan-700/60'
-                }`}>
+            <div className="flex items-center gap-2">
+              {/* User Identity Chip */}
+              <div className="hidden sm:flex items-center gap-2 px-2.5 py-1 rounded-md bg-[var(--bg-card)] border border-[var(--border-subtle)] text-xs">
+                <UserCheck className="w-3.5 h-3.5 text-[var(--success)]" />
+                <span className="text-[var(--text-primary)] font-medium max-w-[120px] truncate">{user.name}</span>
+                <span className="text-[10px] uppercase font-mono px-1.5 py-0.2 rounded font-bold border border-[var(--border-subtle)] text-[var(--text-muted)]">
                   {user.role}
                 </span>
               </div>
+
+              {/* Logout Button */}
               <button
                 onClick={handleLogout}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-red-950/60 border border-slate-700 hover:border-red-500/40 text-slate-300 hover:text-red-300 text-xs font-semibold transition-colors cursor-pointer"
+                className="sentry-btn-ghost text-xs"
                 title="Sign out of Sentry"
               >
                 <LogOut className="w-3.5 h-3.5" />
@@ -128,51 +124,50 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, onNavigateSection })
               </button>
             </div>
           ) : (
-            <>
-              <div className="hidden sm:flex items-center p-0.5 rounded-xl bg-slate-900/90 border border-slate-700/80 shadow-inner">
-                <a
-                  href="/login.html"
-                  onClick={(e) => {
-                    if (onOpenAuth) {
-                      e.preventDefault();
-                      onOpenAuth('login');
-                    }
-                  }}
-                  className="px-3.5 py-1.5 text-xs font-semibold text-slate-300 hover:text-white transition-colors"
-                >
-                  Sign In
-                </a>
-                <div className="w-[1px] h-4 bg-slate-700"></div>
-                <a
-                  href="/signup.html"
-                  onClick={(e) => {
-                    if (onOpenAuth) {
-                      e.preventDefault();
-                      onOpenAuth('signup');
-                    }
-                  }}
-                  className="px-4 py-1.5 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 text-xs font-bold text-slate-950 hover:from-cyan-400 hover:to-blue-500 transition-all shadow-md shadow-cyan-500/20 flex items-center gap-1"
-                >
-                  <span>Get Started</span>
-                  <ArrowRight className="w-3 h-3" />
-                </a>
-              </div>
-
-              {/* Quick Login for small devices */}
+            <div className="hidden sm:flex items-center gap-2">
               <a
                 href="/login.html"
-                className="sm:hidden px-3 py-1.5 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 text-xs font-bold text-slate-950 flex items-center gap-1"
+                onClick={(e) => {
+                  if (onOpenAuth) {
+                    e.preventDefault();
+                    onOpenAuth('login');
+                  }
+                }}
+                className="sentry-btn-ghost text-xs"
               >
-                <LogIn className="w-3.5 h-3.5" />
-                <span>Login</span>
+                Sign In
               </a>
-            </>
+              <a
+                href="/signup.html"
+                onClick={(e) => {
+                  if (onOpenAuth) {
+                    e.preventDefault();
+                    onOpenAuth('signup');
+                  }
+                }}
+                className="sentry-btn-primary text-xs"
+              >
+                <span>Get Started</span>
+                <ArrowRight className="w-3 h-3" />
+              </a>
+            </div>
           )}
 
-          {/* Mobile menu toggle */}
+          {/* Quick Login button for mobile if unauthenticated */}
+          {!user && (
+            <a
+              href="/login.html"
+              className="sm:hidden sentry-btn-primary text-xs px-2.5 py-1"
+            >
+              Sign In
+            </a>
+          )}
+
+          {/* Mobile menu trigger */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white cursor-pointer"
+            className="md:hidden p-1.5 rounded-md border border-[var(--border-subtle)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer"
+            aria-label="Toggle navigation menu"
           >
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
@@ -181,38 +176,62 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, onNavigateSection })
 
       {/* Mobile Menu Dropdown */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-[#131722] border-b border-slate-800 px-6 py-4 flex flex-col gap-3 text-sm">
-          <a href="/index.html" className="text-left py-2 text-slate-300 hover:text-cyan-400">
-            Landing
-          </a>
-          <a href="/homepage.html" className="text-left py-2 text-slate-300 hover:text-cyan-400">
-            Home Page
-          </a>
-          <a href="/dashboard.html" className="text-left py-2 text-slate-300 hover:text-cyan-400">
-            Dashboard
-          </a>
-          <a href="/upload.html" className="text-left py-2 text-slate-300 hover:text-cyan-400">
-            Upload & Audit Pipeline
-          </a>
-          <a href="/result.html" className="text-left py-2 text-slate-300 hover:text-cyan-400">
-            Security Results
-          </a>
-          <a href="/index.html#contact" className="text-left py-2 text-slate-300 hover:text-cyan-400">
-            Contact Team
-          </a>
-          <div className="pt-3 border-t border-slate-800 flex gap-2">
-            <a
-              href="/login.html"
-              className="flex-1 py-2 rounded-lg border border-slate-700 text-center text-xs font-bold text-slate-200"
-            >
-              Sign In
-            </a>
-            <a
-              href="/signup.html"
-              className="flex-1 py-2 rounded-lg bg-cyan-500 text-slate-950 text-center text-xs font-bold"
-            >
-              Register Free
-            </a>
+        <div className="md:hidden border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] px-4 py-3 flex flex-col gap-1.5 shadow-lg animate-in fade-in duration-150">
+          {navItems.map((item) => {
+            const isActive = current === item.id;
+            return (
+              <a
+                key={item.id}
+                href={item.href}
+                onClick={() => setMobileMenuOpen(false)}
+                className={`flex items-center justify-between px-3 py-2 rounded-md text-xs font-medium transition-colors ${
+                  isActive 
+                    ? 'text-[var(--text-primary)] bg-[var(--bg-card)] font-semibold'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                }`}
+              >
+                <span>{item.label}</span>
+                {isActive && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)]"></span>
+                )}
+              </a>
+            );
+          })}
+
+          <div className="pt-2 mt-1 border-t border-[var(--border-subtle)] flex flex-col gap-2">
+            {user ? (
+              <div className="flex items-center justify-between py-1">
+                <div className="flex items-center gap-2">
+                  <UserCheck className="w-4 h-4 text-[var(--success)]" />
+                  <span className="text-xs text-[var(--text-primary)]">{user.name}</span>
+                  <span className="text-[10px] font-mono text-[var(--text-muted)]">({user.role})</span>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="sentry-btn-danger text-xs px-2.5 py-1"
+                >
+                  <LogOut className="w-3 h-3" />
+                  <span>Logout</span>
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <a
+                  href="/login.html"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex-1 sentry-btn-secondary text-xs text-center justify-center py-2"
+                >
+                  Sign In
+                </a>
+                <a
+                  href="/signup.html"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex-1 sentry-btn-primary text-xs text-center justify-center py-2"
+                >
+                  Get Started
+                </a>
+              </div>
+            )}
           </div>
         </div>
       )}
