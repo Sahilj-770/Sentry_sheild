@@ -194,11 +194,6 @@ def home():
     }
 
 
-@app.get("/hello")
-def hello():
-    return {"message": "Hello Aditi"}
-
-
 @app.get("/api/vendors")
 def list_vendors():
     """Returns list of recognized and supported network device vendors."""
