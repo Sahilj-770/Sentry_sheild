@@ -283,6 +283,57 @@ logging host 10.10.10.10
     print("  -> PDF report generated successfully with verification metadata.")
 
 
+def test_uploaded_report_compliance_verdict():
+    print("[RUN] 7. Testing uploaded report scenario (88/100 -> NON-COMPLIANT verdict)...")
+    # Findings: 1 High (CISCO-AAA-001) + 1 Medium (CISCO-LOGIN-001)
+    report_findings = [
+        {"rule_id": "CISCO-AAA-001", "severity": "High", "issue": "AAA authentication may not be configured"},
+        {"rule_id": "CISCO-LOGIN-001", "severity": "Medium", "issue": "Login protection may not be configured"}
+    ]
+    result = calculate_risk_score(report_findings)
+    assert result["security_score"] == 88, f"Expected score 88, got {result['security_score']}"
+    assert result["high_findings"] == 1
+    assert result["medium_findings"] == 1
+    # Authoritative verdict must be NON-COMPLIANT because of the High finding!
+    assert "NON-COMPLIANT" in result["compliance_status"], f"Expected NON-COMPLIANT status, got: {result['compliance_status']}"
+    print(f"  -> Score 88/100 correctly assigned honest compliance verdict: {result['compliance_status']}")
+
+
+def test_snmp_read_write_critical():
+    print("[RUN] 8. Testing SNMP Read-Write community string (CISCO-SNMP-002, Critical)...")
+    cfg_snmp_rw = """hostname CORE-R01
+snmp-server community private RW
+"""
+    parser = CiscoParser()
+    data = parser.parse(cfg_snmp_rw)
+    assert data["snmp_rw"] is True, "snmp_rw was not flagged for 'community private RW'"
+    findings = run_security_rules(data)
+    rw_finding = next((f for f in findings if f["rule_id"] == "CISCO-SNMP-002"), None)
+    assert rw_finding is not None, "CISCO-SNMP-002 not triggered for SNMP RW community"
+    assert rw_finding["severity"] == "Critical"
+    print("  -> SNMP Read-Write community correctly flagged as Critical (CISCO-SNMP-002).")
+
+
+def test_fingerprint_matching_between_pdf_and_api():
+    print("[RUN] 9. Testing cryptographic fingerprint consistency and tamper-evidence...")
+    from security_utils import compute_audit_integrity_hash
+    audit_id = "AUDIT-INTEGRITY-TEST"
+    vendor = "Cisco"
+    score = 88
+    findings = [
+        {"rule_id": "CISCO-AAA-001", "severity": "High"},
+        {"rule_id": "CISCO-LOGIN-001", "severity": "Medium"}
+    ]
+    expected_hash = compute_audit_integrity_hash(audit_id, vendor, score, findings)
+    assert len(expected_hash) == 64
+
+    # Verify tamper-evidence: if findings change, hash must change
+    tampered_findings = [findings[0]]  # Deleted finding 2
+    tampered_hash = compute_audit_integrity_hash(audit_id, vendor, score, tampered_findings)
+    assert expected_hash != tampered_hash, "Fingerprint failed to change when findings were modified!"
+    print(f"  -> Cryptographic fingerprint ({expected_hash[:16]}...) verified consistent and tamper-evident.")
+
+
 def run_all_correctness_tests():
     print("=" * 65)
     print("RUNNING SENTRY AUDIT-ENGINE CORRECTNESS & RELIABILITY SUITE")
@@ -294,9 +345,12 @@ def run_all_correctness_tests():
     test_threat_intel_complete_enrichment()
     test_risk_score_deduplication_and_metrics()
     test_public_audit_verification_endpoint()
+    test_uploaded_report_compliance_verdict()
+    test_snmp_read_write_critical()
+    test_fingerprint_matching_between_pdf_and_api()
 
     print("=" * 65)
-    print("ALL 6 AUDIT-ENGINE CORRECTNESS & RELIABILITY TEST SUITES PASSED!")
+    print("ALL 9 AUDIT-ENGINE CORRECTNESS & RELIABILITY TEST SUITES PASSED!")
     print("=" * 65)
 
 

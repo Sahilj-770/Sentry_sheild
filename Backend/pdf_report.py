@@ -8,6 +8,7 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Tabl
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+from security_utils import compute_audit_integrity_hash
 
 
 def generate_audit_pdf(
@@ -112,13 +113,21 @@ def generate_audit_pdf(
     story.append(info_table)
     story.append(Spacer(1, 14))
 
-    # Dynamic Compliance Status
-    if security_score >= 80:
-        compliance_badge = "<font color='#16a34a'><b>COMPLIANT (PASS)</b></font>"
-    elif security_score >= 60:
+    # Executive Severity Counters
+    crit_count = sum(1 for f in findings if str(f.get("severity", "")).lower() == "critical")
+    high_count = sum(1 for f in findings if str(f.get("severity", "")).lower() == "high")
+    med_count = sum(1 for f in findings if str(f.get("severity", "")).lower() == "medium")
+    low_count = sum(1 for f in findings if str(f.get("severity", "")).lower() == "low")
+
+    # Authoritative Severity-Gated Compliance Verdict (CIS & NIST Audit Standard)
+    if crit_count > 0:
+        compliance_badge = "<font color='#991b1b'><b>NON-COMPLIANT (CRITICAL CONTROLS FAILED)</b></font>"
+    elif high_count > 0:
+        compliance_badge = "<font color='#dc2626'><b>NON-COMPLIANT (HIGH SEVERITY CONTROLS FAILED)</b></font>"
+    elif med_count > 0:
         compliance_badge = "<font color='#d97706'><b>CONDITIONALLY COMPLIANT (REVIEW REQUIRED)</b></font>"
     else:
-        compliance_badge = "<font color='#dc2626'><b>NON-COMPLIANT (ACTION REQUIRED)</b></font>"
+        compliance_badge = "<font color='#16a34a'><b>COMPLIANT (PASS)</b></font>"
 
     story.append(Paragraph("<b>Security Score &amp; Compliance Status</b>", heading2_style))
     story.append(
@@ -130,12 +139,6 @@ def generate_audit_pdf(
         )
     )
     story.append(Spacer(1, 8))
-
-    # Executive Severity Matrix
-    crit_count = sum(1 for f in findings if str(f.get("severity", "")).lower() == "critical")
-    high_count = sum(1 for f in findings if str(f.get("severity", "")).lower() == "high")
-    med_count = sum(1 for f in findings if str(f.get("severity", "")).lower() == "medium")
-    low_count = sum(1 for f in findings if str(f.get("severity", "")).lower() == "low")
 
     matrix_data = [
         [
@@ -175,18 +178,21 @@ def generate_audit_pdf(
     )
     story.append(matrix_table)
 
-    # Compile actual evaluated compliance frameworks
-    fw_set = set()
+    # Evaluated Framework Scope & Non-Compliant Violations
+    scope_catalog = "CIS Cisco IOS Benchmark v8, NIST SP 800-53 Rev 5, DISA STIG, ISO/IEC 27001:2022" if vendor.lower() == "cisco" else "CIS Security Benchmarks, NIST SP 800-53 Rev 5, DISA STIG"
+    violated_fw = set()
     for f in findings:
         for fw in f.get("frameworks", []):
-            fw_set.add(str(fw))
-    if not fw_set:
-        fw_set = {"CIS Benchmarks v8.0", "NIST SP 800-53 Rev 5", "DISA STIG Network Core", "ISO/IEC 27001:2022"}
+            violated_fw.add(str(fw))
 
-    fw_str = html.escape(", ".join(sorted(fw_set)))
-    story.append(Spacer(1, 4))
-    story.append(Paragraph(f"<font size=8 color='#64748b'><b>Evaluated Framework Baselines:</b> {fw_str}</font>", normal_style))
-    story.append(Spacer(1, 12))
+    story.append(Spacer(1, 6))
+    story.append(Paragraph(f"<font size=8 color='#475569'><b>Evaluated Framework Baselines:</b> {html.escape(scope_catalog)}</font>", normal_style))
+    if violated_fw:
+        violated_str = html.escape(", ".join(sorted(violated_fw)))
+        story.append(Paragraph(f"<font size=8 color='#dc2626'><b>Non-Compliant Control Violations:</b> {violated_str}</font>", normal_style))
+    else:
+        story.append(Paragraph("<font size=8 color='#16a34a'><b>Compliance Verdict:</b> All evaluated baseline controls successfully verified.</font>", normal_style))
+    story.append(Spacer(1, 10))
 
     # Findings Section
     story.append(Paragraph("<b>Security Findings &amp; Evidence</b>", heading2_style))
@@ -271,8 +277,8 @@ def generate_audit_pdf(
     story.append(Paragraph("<b>Cryptographic Audit Verification &amp; Registry</b>", heading2_style))
     story.append(Spacer(1, 6))
 
-    # Calculate integrity fingerprint
-    calc_hash = integrity_hash or hashlib.sha256(f"{audit_id}:{vendor}:{security_score}".encode()).hexdigest()
+    # Calculate integrity fingerprint using canonical hash helper
+    calc_hash = integrity_hash or compute_audit_integrity_hash(audit_id, vendor, security_score, findings)
 
     qr_cell = Paragraph("<font color='#94a3b8'>QR code unavailable</font>", normal_style)
     if qr_file and os.path.exists(qr_file):

@@ -58,7 +58,7 @@ def calculate_risk_score(findings, total_checks: int = None):
     # Score should never go below 0
     score = max(score, 0)
 
-    # Determine overall risk level
+    # Determine overall hygiene risk level
     if score >= 80:
         risk_level = "Low"
     elif score >= 60:
@@ -68,6 +68,16 @@ def calculate_risk_score(findings, total_checks: int = None):
     else:
         risk_level = "Critical"
 
+    # Determine authoritative compliance status (severity-gated, not purely numerical)
+    if critical_count > 0:
+        compliance_status = "NON-COMPLIANT (CRITICAL CONTROLS FAILED)"
+    elif high_count > 0:
+        compliance_status = "NON-COMPLIANT (HIGH SEVERITY CONTROLS FAILED)"
+    elif medium_count > 0:
+        compliance_status = "CONDITIONALLY COMPLIANT (REVIEW REQUIRED)"
+    else:
+        compliance_status = "COMPLIANT (PASS)"
+
     total_eval = total_checks if total_checks is not None else max(len(deduped_findings), 12)
     checks_failed = len(deduped_findings)
     checks_passed = max(0, total_eval - checks_failed)
@@ -75,6 +85,7 @@ def calculate_risk_score(findings, total_checks: int = None):
     return {
         "security_score": score,
         "risk_level": risk_level,
+        "compliance_status": compliance_status,
         "critical_findings": critical_count,
         "high_findings": high_count,
         "medium_findings": medium_count,

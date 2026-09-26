@@ -189,3 +189,26 @@ class ModernSecurityHeadersMiddleware(BaseHTTPMiddleware):
             "frame-ancestors 'none';"
         )
         return response
+
+
+# ==============================================================================
+# 5. CRYPTOGRAPHIC AUDIT INTEGRITY FINGERPRINT
+# ==============================================================================
+
+def compute_audit_integrity_hash(
+    audit_id: str,
+    vendor: str,
+    security_score: int,
+    findings: list = None
+) -> str:
+    """
+    Computes a deterministic, tamper-evident SHA-256 cryptographic fingerprint
+    binding audit ID, vendor, score, and the findings catalog.
+    """
+    import hashlib
+    if findings:
+        findings_summary = ",".join(sorted(str(f.get("rule_id", "")) for f in findings if isinstance(f, dict)))
+    else:
+        findings_summary = "CLEAN"
+    raw_payload = f"{audit_id}:{vendor}:{security_score}:{findings_summary}"
+    return hashlib.sha256(raw_payload.encode()).hexdigest()

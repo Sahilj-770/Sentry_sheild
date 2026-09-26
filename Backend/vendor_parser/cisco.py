@@ -237,7 +237,15 @@ class CiscoParser(BaseVendorParser):
 
             # SNMP Community (Redact community string in evidence)
             if tokens[0] == "snmp-server" and "community" in tokens:
-                if "public" in tokens or "private" in tokens:
+                is_rw = "rw" in tokens or "write" in tokens
+                if is_rw:
+                    data["snmp_rw"] = True
+                    data["evidence_details"]["snmp_rw"] = {
+                        "state": "configured",
+                        "line_num": line_no,
+                        "line": "snmp-server community [REDACTED_SECRET] RW"
+                    }
+                if "public" in tokens or ("private" in tokens and not is_rw):
                     data["snmp_public"] = True
                     data["evidence_details"]["snmp_public"] = {
                         "state": "configured",

@@ -23,9 +23,17 @@ def generate_audit_qr(
     if verification_url:
         qr_data = verification_url
     else:
-        # Default structured verification payload
+        # Resolve real deployment or configured verification base URL
+        # Priority: VERIFICATION_BASE_URL > FRONTEND_URL > RENDER_EXTERNAL_URL > fallback
+        base_url = (
+            os.getenv("VERIFICATION_BASE_URL")
+            or os.getenv("FRONTEND_URL")
+            or os.getenv("RENDER_EXTERNAL_URL")
+            or "https://sentryshield.vercel.app"
+        ).rstrip("/")
+
         short_hash = integrity_hash or hashlib.sha256(audit_id.encode()).hexdigest()[:16]
-        qr_data = f"https://sentryshield.gov.in/verify?audit_id={audit_id}&checksum={short_hash}"
+        qr_data = f"{base_url}/verify?audit_id={audit_id}&checksum={short_hash}"
 
     qr = qrcode.QRCode(
         version=None,

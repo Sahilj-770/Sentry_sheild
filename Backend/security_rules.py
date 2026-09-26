@@ -10,6 +10,7 @@ RULE_FRAMEWORK_MAPPINGS = {
     "CISCO-AUTH-001": ["CIS Cisco IOS Benchmark v8 (1.4)", "NIST SP 800-53 (IA-5)", "ISO/IEC 27001 (A.9.4.2)"],
     "CISCO-AUTH-002": ["CIS Cisco IOS Benchmark v8 (1.5)", "NIST SP 800-53 (IA-5)", "DISA STIG"],
     "CISCO-SNMP-001": ["CIS Cisco IOS Benchmark v8 (1.6)", "NIST SP 800-53 (SC-8)", "DISA STIG (NET-080)"],
+    "CISCO-SNMP-002": ["CIS Cisco IOS Benchmark v8 (1.6)", "NIST SP 800-53 (SC-8, AC-3)", "DISA STIG (NET-080)"],
     "CISCO-WEB-001": ["CIS Cisco IOS Benchmark v8 (1.7)", "NIST SP 800-53 (AC-17)", "DISA STIG"],
     "CISCO-AAA-001": ["CIS Cisco IOS Benchmark v8 (1.8)", "NIST SP 800-53 (AC-2, IA-2)"],
     "CISCO-PWD-001": ["CIS Cisco IOS Benchmark v8 (1.9)", "NIST SP 800-53 (IA-5)", "ISO/IEC 27001 (A.9.4.3)"],
@@ -171,6 +172,21 @@ def run_security_rules(parsed_data):
                 "description": "The default public SNMP community string allows unauthorized network reconnaissance and device information disclosure.",
                 "evidence": ev_str,
                 "remediation": "Replace the public community string with a unique protected value or migrate to SNMPv3."
+            })
+
+        # 6B. Insecure SNMP Read-Write Community String (Critical)
+        if parsed_data.get("snmp_rw"):
+            snmp_rw_info = evidence_details.get("snmp_rw")
+            ev_str = f"Line {snmp_rw_info['line_num']}: snmp-server community [REDACTED_SECRET] RW" if snmp_rw_info else "snmp-server community [REDACTED_SECRET] RW"
+            findings.append({
+                "rule_id": "CISCO-SNMP-002",
+                "title": "Insecure SNMP Read-Write community string configured",
+                "issue": "Insecure SNMP Read-Write community string configured",
+                "severity": "Critical",
+                "category": "Network Management Protocols",
+                "description": "SNMP Read-Write string exposes device configuration to complete remote takeover, unauthorized reconfiguration, and malicious parameter modification.",
+                "evidence": ev_str,
+                "remediation": "Remove read-write community strings immediately ('no snmp-server community <string>') and migrate to SNMPv3 with authPriv encryption."
             })
 
         # 7. HTTP Management Enabled (High)

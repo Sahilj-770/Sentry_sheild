@@ -33,6 +33,7 @@ class BaseVendorParser(ABC):
 
             # Security protocols
             "snmp_public": False,
+            "snmp_rw": False,
 
             # Authentication
             "aaa_configured": False,

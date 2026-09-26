@@ -39,7 +39,8 @@ from security_utils import (
     sanitize_filename,
     validate_uploaded_file,
     validate_vendor_name,
-    SUPPORTED_VENDORS
+    SUPPORTED_VENDORS,
+    compute_audit_integrity_hash
 )
 from vendor_detector import detect_vendor
 from config_parser import parse_configuration
@@ -587,13 +588,21 @@ def verify_audit_record(
             detail=f"Audit record '{audit_id}' was not found in the official registry."
         )
 
-    # Compute deterministic SHA-256 fingerprint of the record
-    integrity_string = f"{record.audit_id}:{record.vendor}:{record.security_score}:{record.timestamp}"
-    integrity_hash = hashlib.sha256(integrity_string.encode()).hexdigest()
+    findings = json.loads(record.findings_json) if record.findings_json else []
+    integrity_hash = compute_audit_integrity_hash(record.audit_id, record.vendor, record.security_score, findings)
 
-    compliance_status = "Compliant (Pass)" if record.security_score >= 80 else (
-        "Conditionally Compliant (Review Required)" if record.security_score >= 60 else "Non-Compliant (Action Required)"
-    )
+    crit = record.critical_findings if record.critical_findings is not None else sum(1 for f in findings if str(f.get("severity", "")).lower() == "critical")
+    high = record.high_findings if record.high_findings is not None else sum(1 for f in findings if str(f.get("severity", "")).lower() == "high")
+    med = record.medium_findings if record.medium_findings is not None else sum(1 for f in findings if str(f.get("severity", "")).lower() == "medium")
+
+    if crit > 0:
+        compliance_status = "Non-Compliant (Critical Controls Failed)"
+    elif high > 0:
+        compliance_status = "Non-Compliant (High Severity Controls Failed)"
+    elif med > 0:
+        compliance_status = "Conditionally Compliant (Review Required)"
+    else:
+        compliance_status = "Compliant (Pass)"
 
     return {
         "verified": True,
@@ -653,9 +662,8 @@ def create_audit_report(
             if remediation and remediation not in suggestions:
                 suggestions.append(remediation)
 
-    # Compute integrity hash
-    integrity_string = f"{audit_id}:{vendor}:{security_score}"
-    integrity_hash = hashlib.sha256(integrity_string.encode()).hexdigest()
+    # Compute standardized integrity hash
+    integrity_hash = compute_audit_integrity_hash(audit_id, vendor, security_score, findings)
 
     # Generate QR code containing audit verification URL & hash
     qr_file = generate_audit_qr(audit_id, integrity_hash=integrity_hash)
@@ -699,8 +707,8 @@ def download_audit_report_by_id(
     security_score = details.get("security_score", 100)
     device_name = details.get("hostname")
 
-    integrity_string = f"{audit_id}:{vendor}:{security_score}:{details.get('timestamp')}"
-    integrity_hash = hashlib.sha256(integrity_string.encode()).hexdigest()
+    # Compute standardized integrity hash
+    integrity_hash = compute_audit_integrity_hash(audit_id, vendor, security_score, findings)
 
     qr_file = generate_audit_qr(audit_id, integrity_hash=integrity_hash)
     pdf_filename = f"reports/{audit_id}_Report.pdf"
