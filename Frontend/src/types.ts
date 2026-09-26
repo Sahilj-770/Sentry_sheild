@@ -45,6 +45,8 @@ export interface UploadAuditData {
   deviceCount: number;
   uploadedAt: string;
   complianceScore: number;
+  compliance_status?: string;
+  audit_status?: string;
   vulnerabilitiesFound: number;
   stages: PipelineStage[];
   findings?: any[];

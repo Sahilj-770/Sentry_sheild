@@ -431,6 +431,8 @@ def audit_configuration(
         "audit_id": audit_id,
         "vendor": vendor,
         "hostname": parsed_data.get("hostname") or data.device,
+        "compliance_status": risk.get("compliance_status"),
+        "audit_status": "Completed",
         "parsed_configuration": parsed_data,
         "findings": findings,
         "risk": risk,
@@ -494,6 +496,8 @@ async def upload_config_file(
         "filename": safe_filename,
         "vendor": vendor,
         "hostname": parsed_data.get("hostname"),
+        "compliance_status": risk.get("compliance_status"),
+        "audit_status": "Completed",
         "parsed_configuration": parsed_data,
         "findings": findings,
         "risk": risk,
@@ -523,6 +527,21 @@ def get_audit_by_id(
     # Ensure findings are enriched with CVE / threat intelligence
     findings = threat_intel_service.enrich_findings(findings)
 
+    compliance_status = risk_data.get("compliance_status")
+    if not compliance_status:
+        crit = record.critical_findings if record.critical_findings is not None else sum(1 for f in findings if str(f.get("severity", "")).lower() == "critical")
+        high = record.high_findings if record.high_findings is not None else sum(1 for f in findings if str(f.get("severity", "")).lower() == "high")
+        med = record.medium_findings if record.medium_findings is not None else sum(1 for f in findings if str(f.get("severity", "")).lower() == "medium")
+        if crit > 0:
+            compliance_status = "NON-COMPLIANT (CRITICAL CONTROLS FAILED)"
+        elif high > 0:
+            compliance_status = "NON-COMPLIANT (HIGH SEVERITY CONTROLS FAILED)"
+        elif med > 0:
+            compliance_status = "CONDITIONALLY COMPLIANT (REVIEW REQUIRED)"
+        else:
+            compliance_status = "COMPLIANT (PASS)"
+    risk_data["compliance_status"] = compliance_status
+
     return {
         "audit_id": record.audit_id,
         "timestamp": record.timestamp,
@@ -530,6 +549,7 @@ def get_audit_by_id(
         "hostname": record.hostname,
         "security_score": record.security_score,
         "risk_level": record.risk_level,
+        "compliance_status": compliance_status,
         "total_findings": record.total_findings,
         "critical_findings": record.critical_findings,
         "high_findings": record.high_findings,
@@ -596,13 +616,13 @@ def verify_audit_record(
     med = record.medium_findings if record.medium_findings is not None else sum(1 for f in findings if str(f.get("severity", "")).lower() == "medium")
 
     if crit > 0:
-        compliance_status = "Non-Compliant (Critical Controls Failed)"
+        compliance_status = "NON-COMPLIANT (CRITICAL CONTROLS FAILED)"
     elif high > 0:
-        compliance_status = "Non-Compliant (High Severity Controls Failed)"
+        compliance_status = "NON-COMPLIANT (HIGH SEVERITY CONTROLS FAILED)"
     elif med > 0:
-        compliance_status = "Conditionally Compliant (Review Required)"
+        compliance_status = "CONDITIONALLY COMPLIANT (REVIEW REQUIRED)"
     else:
-        compliance_status = "Compliant (Pass)"
+        compliance_status = "COMPLIANT (PASS)"
 
     return {
         "verified": True,

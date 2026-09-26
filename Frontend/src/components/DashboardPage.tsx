@@ -29,6 +29,7 @@ export interface AuditRecordItem {
   filename?: string;
   security_score: number;
   risk_level: string;
+  compliance_status?: string;
   risk_summary?: string;
   total_findings?: number;
   critical_findings?: number;
@@ -91,13 +92,16 @@ export const DashboardPage: React.FC = () => {
         audit_id: detailed.audit_id,
         vendor: detailed.vendor,
         hostname: detailed.hostname,
+        compliance_status: detailed.compliance_status || detailed.risk_data?.compliance_status,
+        audit_status: detailed.audit_status || 'Completed',
         risk: {
           security_score: detailed.security_score,
           risk_level: detailed.risk_level,
+          compliance_status: detailed.compliance_status || detailed.risk_data?.compliance_status,
           risk_summary: detailed.risk_summary
         },
-        findings: detailed.findings_json || [],
-        evaluated_rules_count: (detailed.findings_json || []).length,
+        findings: detailed.findings || detailed.findings_json || [],
+        evaluated_rules_count: (detailed.findings || detailed.findings_json || []).length,
         timestamp: detailed.timestamp
       };
       localStorage.setItem('aegisnet_audit_data', JSON.stringify(payload));
@@ -107,9 +111,12 @@ export const DashboardPage: React.FC = () => {
         audit_id: rec.audit_id,
         vendor: rec.vendor,
         hostname: rec.hostname,
+        compliance_status: rec.compliance_status,
+        audit_status: rec.audit_status || 'Completed',
         risk: {
           security_score: rec.security_score,
           risk_level: rec.risk_level,
+          compliance_status: rec.compliance_status,
           risk_summary: rec.risk_summary
         },
         findings: rec.findings_json || [],

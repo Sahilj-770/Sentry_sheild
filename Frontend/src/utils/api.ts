@@ -49,9 +49,15 @@ export interface AuditFinding {
 export interface AuditRisk {
   security_score: number;
   risk_level: string;
+  compliance_status?: string;
+  critical_findings?: number;
   high_findings: number;
   medium_findings: number;
   low_findings: number;
+  total_findings?: number;
+  checks_evaluated?: number;
+  checks_passed?: number;
+  checks_failed?: number;
 }
 
 export interface AuditResultData {
@@ -59,6 +65,8 @@ export interface AuditResultData {
   filename?: string;
   vendor: string;
   hostname?: string;
+  compliance_status?: string;
+  audit_status?: string;
   findings: AuditFinding[];
   risk: AuditRisk;
   ai_explanation?: {

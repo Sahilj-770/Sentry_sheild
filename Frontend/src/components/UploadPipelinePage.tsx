@@ -183,7 +183,7 @@ export const UploadPipelinePage: React.FC = () => {
         { index: 2, percent: 100, msg: `Stage 3 Complete: CIS benchmark scan finished. ${backendResult.findings.length} security rules evaluated.` },
         { index: 3, percent: 100, msg: `Stage 4 Complete: Risk level "${backendResult.risk.risk_level}". Identified ${backendResult.findings.length} vulnerabilities.` },
         { index: 4, percent: 100, msg: `Stage 5 Complete: Security classification tagged ${backendResult.hostname || 'Core Layer'} asset tier.` },
-        { index: 5, percent: 100, msg: `Stage 6 Complete: Overall compliance score finalized at ${backendResult.risk.security_score}%.` },
+        { index: 5, percent: 100, msg: `Stage 6 Complete: Security score finalized at ${backendResult.risk.security_score}% | Compliance: ${backendResult.compliance_status || backendResult.risk.compliance_status || 'Evaluated'}.` },
         { index: 6, percent: 100, msg: `Stage 7 Complete: Security report generated with Audit ID ${backendResult.audit_id}.` }
       ];
 

@@ -96,6 +96,8 @@ const DEFAULT_UPLOAD_DATA = {
   fileSize: '4.2 KB',
   deviceCount: 1,
   complianceScore: 12,
+  compliance_status: 'NON-COMPLIANT (CRITICAL CONTROLS FAILED)',
+  audit_status: 'Evaluation Complete',
   vulnerabilitiesFound: 12,
   stages: [
     { id: '1', title: 'Ingestion & AST Tokenization', progressPercent: 100, details: 'File parsed and validated' },
@@ -207,6 +209,24 @@ export const ResultPage: React.FC = () => {
   const riskLevel = uploadData.risk?.risk_level ?? (score >= 80 ? 'Low' : score >= 40 ? 'Medium' : 'Critical');
   const findingsCount = uploadData.findings?.length ?? uploadData.vulnerabilitiesFound ?? displayedSuggestions.length;
 
+  // Canonical compliance status: prefer backend field, fallback to severity calculation
+  const rawCompliance = uploadData.compliance_status 
+    || uploadData.risk?.compliance_status 
+    || (uploadData as any).complianceStatus;
+
+  const complianceStatus: string = rawCompliance || (() => {
+    const list = uploadData.findings || [];
+    const hasCrit = list.some((f: any) => String(f.severity || '').toLowerCase() === 'critical');
+    const hasHigh = list.some((f: any) => String(f.severity || '').toLowerCase() === 'high');
+    const hasMed = list.some((f: any) => String(f.severity || '').toLowerCase() === 'medium');
+    if (hasCrit) return 'NON-COMPLIANT (CRITICAL CONTROLS FAILED)';
+    if (hasHigh) return 'NON-COMPLIANT (HIGH SEVERITY CONTROLS FAILED)';
+    if (hasMed) return 'CONDITIONALLY COMPLIANT (REVIEW REQUIRED)';
+    return 'COMPLIANT (PASS)';
+  })();
+
+  const auditState: string = uploadData.audit_status || 'Evaluation Complete';
+
   return (
     <div className="min-h-screen bg-[var(--bg-app)] text-[var(--text-primary)] flex flex-col selection:bg-[var(--accent)] selection:text-white relative overflow-x-hidden">
       
@@ -296,18 +316,21 @@ export const ResultPage: React.FC = () => {
                     Executive Scorecard
                   </div>
                   <span className="sentry-tag bg-[var(--bg-surface)] text-[var(--text-muted)] border border-[var(--border-subtle)]">
-                    Audited
+                    {auditState}
                   </span>
                 </div>
 
-                {/* Score Gauge */}
+                {/* Score Gauge & Posture */}
                 <div className="p-4 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-subtle)] flex items-center justify-between">
                   <div>
-                    <span className="text-[10px] text-[var(--text-muted)] font-mono uppercase">Overall Compliance Score</span>
+                    <span className="text-[10px] text-[var(--text-muted)] font-mono uppercase tracking-wider">Security Score</span>
                     <div className={`text-4xl font-bold font-mono mt-0.5 ${
                       score >= 80 ? 'text-[var(--success)]' : score >= 40 ? 'text-[var(--warning)]' : 'text-[var(--danger)]'
                     }`}>
                       {score}%
+                    </div>
+                    <div className="text-[10px] text-[var(--text-muted)] font-mono mt-0.5">
+                      Posture: <span className="font-semibold text-[var(--text-secondary)]">{riskLevel} Risk</span>
                     </div>
                   </div>
                   <div className="text-right">
@@ -321,8 +344,36 @@ export const ResultPage: React.FC = () => {
                       {riskLevel} Risk
                     </span>
                     <div className="text-[11px] text-[var(--text-muted)] font-mono mt-1">
-                      {findingsCount} Gaps Flagged
+                      {findingsCount} {findingsCount === 1 ? 'Gap Flagged' : 'Gaps Flagged'}
                     </div>
+                  </div>
+                </div>
+
+                {/* Regulatory / Benchmark Compliance Verdict */}
+                <div className={`p-3.5 rounded-lg border flex flex-col gap-1.5 ${
+                  complianceStatus.includes('NON-COMPLIANT')
+                    ? 'bg-[var(--danger-muted)]/40 border-[var(--danger)]/30 text-[var(--danger)]'
+                    : complianceStatus.includes('CONDITIONALLY')
+                    ? 'bg-[var(--warning-muted)]/40 border-[var(--warning)]/30 text-[var(--warning)]'
+                    : 'bg-[var(--success-muted)]/40 border-[var(--success)]/30 text-[var(--success)]'
+                }`}>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-mono uppercase font-bold tracking-wider opacity-80">
+                      Compliance Verdict
+                    </span>
+                    <span className="text-[9px] font-mono px-1.5 py-0.5 rounded uppercase font-bold bg-[var(--bg-card)]/80 border border-current">
+                      {complianceStatus.includes('NON-COMPLIANT') ? 'FAIL' : complianceStatus.includes('CONDITIONALLY') ? 'CONDITIONAL' : 'PASS'}
+                    </span>
+                  </div>
+                  <div className="text-xs font-mono font-bold tracking-tight">
+                    {complianceStatus}
+                  </div>
+                  <div className="text-[10px] opacity-75 font-mono leading-relaxed">
+                    {complianceStatus.includes('CRITICAL') || complianceStatus.includes('HIGH')
+                      ? 'Severity-gated control failure overrides numerical score per CIS / NIST standard.'
+                      : complianceStatus.includes('REVIEW')
+                      ? 'Medium findings require review prior to full regulatory sign-off.'
+                      : 'All baseline security configuration controls passed benchmark evaluation.'}
                   </div>
                 </div>
 
@@ -362,6 +413,7 @@ export const ResultPage: React.FC = () => {
                   <div>Vendor: <span className="text-[var(--text-primary)]">{uploadData.vendor}</span></div>
                   <div>File: <span className="text-[var(--text-primary)]">{uploadData.fileName || 'configuration.cfg'}</span></div>
                   {uploadData.audit_id && <div>Audit ID: <span className="text-[var(--text-primary)]">{uploadData.audit_id}</span></div>}
+                  <div>Audit State: <span className="text-[var(--text-primary)]">{auditState}</span></div>
                 </div>
 
               </div>

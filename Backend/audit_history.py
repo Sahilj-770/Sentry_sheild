@@ -83,6 +83,31 @@ def save_audit_record(
     return audit_id
 
 
+def _extract_compliance_status(r: AuditRecord) -> str:
+    """
+    Extracts or deterministically derives canonical compliance status from an audit record.
+    """
+    if r.risk_data_json:
+        try:
+            rd = json.loads(r.risk_data_json)
+            if isinstance(rd, dict) and rd.get("compliance_status"):
+                return str(rd["compliance_status"])
+        except Exception:
+            pass
+
+    crit = r.critical_findings or 0
+    high = r.high_findings or 0
+    med = r.medium_findings or 0
+
+    if crit > 0:
+        return "NON-COMPLIANT (CRITICAL CONTROLS FAILED)"
+    elif high > 0:
+        return "NON-COMPLIANT (HIGH SEVERITY CONTROLS FAILED)"
+    elif med > 0:
+        return "CONDITIONALLY COMPLIANT (REVIEW REQUIRED)"
+    return "COMPLIANT (PASS)"
+
+
 def get_user_audit_history(
     user_id: Any,
     limit: int = 50,
@@ -121,6 +146,7 @@ def get_user_audit_history(
                 "hostname": r.hostname,
                 "security_score": r.security_score,
                 "risk_level": r.risk_level,
+                "compliance_status": _extract_compliance_status(r),
                 "total_findings": r.total_findings,
                 "critical_findings": r.critical_findings,
                 "high_findings": r.high_findings,
@@ -159,6 +185,7 @@ def get_all_audit_history(
                 "hostname": r.hostname,
                 "security_score": r.security_score,
                 "risk_level": r.risk_level,
+                "compliance_status": _extract_compliance_status(r),
                 "total_findings": r.total_findings,
                 "critical_findings": r.critical_findings,
                 "high_findings": r.high_findings,
