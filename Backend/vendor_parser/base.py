@@ -17,6 +17,9 @@ class BaseVendorParser(ABC):
             "vendor": vendor,
             "hostname": None,
 
+            # Line-level audit evidence tracking (rule/check -> metadata with line numbers)
+            "evidence_details": {},
+
             # Remote access
             "telnet_enabled": False,
             "ssh_enabled": False,

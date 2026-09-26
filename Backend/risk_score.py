@@ -1,15 +1,16 @@
-def calculate_risk_score(findings):
+def calculate_risk_score(findings, total_checks: int = None):
     """
     Calculates an overall security score from 0 to 100 based on verified findings.
 
     Scoring Logic:
     - Base score: 100 (Clean configuration)
-    - Deductions per finding severity:
+    - Deductions per unique finding severity:
       * Critical: -15 points
       * High:     -8 points
       * Medium:   -4 points
       * Low:      -2 points
     - Score is clamped to minimum 0.
+    - Findings are deduplicated by rule ID to prevent double penalties.
 
     Risk Levels:
     - 80 to 100: Low Risk
@@ -28,8 +29,18 @@ def calculate_risk_score(findings):
     medium_count = 0
     low_count = 0
 
-    for finding in findings:
-        severity = finding.get("severity", "").lower()
+    seen_keys = set()
+    deduped_findings = []
+    for f in findings:
+        key = f.get("rule_id") or f.get("issue") or f.get("title")
+        if key and key in seen_keys:
+            continue
+        if key:
+            seen_keys.add(key)
+        deduped_findings.append(f)
+
+    for finding in deduped_findings:
+        severity = str(finding.get("severity", "")).lower()
 
         if severity == "critical":
             score -= 15
@@ -57,11 +68,21 @@ def calculate_risk_score(findings):
     else:
         risk_level = "Critical"
 
+    total_eval = total_checks if total_checks is not None else max(len(deduped_findings), 12)
+    checks_failed = len(deduped_findings)
+    checks_passed = max(0, total_eval - checks_failed)
+
     return {
         "security_score": score,
         "risk_level": risk_level,
         "critical_findings": critical_count,
         "high_findings": high_count,
         "medium_findings": medium_count,
-        "low_findings": low_count
+        "low_findings": low_count,
+        "total_findings": len(deduped_findings),
+        "checks_evaluated": total_eval,
+        "checks_passed": checks_passed,
+        "checks_failed": checks_failed,
+        "deduplicated": len(findings) != len(deduped_findings),
+        "scoring_methodology": "Base 100 with deduplicated severity penalties (Critical: -15, High: -8, Medium: -4, Low: -2, clamped [0, 100])"
     }

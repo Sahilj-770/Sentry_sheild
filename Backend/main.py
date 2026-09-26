@@ -1,6 +1,7 @@
 import os
 import json
 import logging
+import hashlib
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Optional, List, Dict, Any
@@ -569,39 +570,108 @@ def get_audit_remediation(
 # REPORT & PDF EXPORT ENDPOINTS
 # ==============================================================================
 
+@app.get("/api/reports/{audit_id}/verify")
+@app.get("/api/audits/{audit_id}/verify")
+def verify_audit_record(
+    audit_id: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Public verification endpoint to verify authenticity and integrity of an audit report.
+    Returns audit verification metadata and cryptographic checksum without leaking sensitive configurations.
+    """
+    record = db.query(AuditRecord).filter(AuditRecord.audit_id == audit_id).first()
+    if not record:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Audit record '{audit_id}' was not found in the official registry."
+        )
+
+    # Compute deterministic SHA-256 fingerprint of the record
+    integrity_string = f"{record.audit_id}:{record.vendor}:{record.security_score}:{record.timestamp}"
+    integrity_hash = hashlib.sha256(integrity_string.encode()).hexdigest()
+
+    compliance_status = "Compliant (Pass)" if record.security_score >= 80 else (
+        "Conditionally Compliant (Review Required)" if record.security_score >= 60 else "Non-Compliant (Action Required)"
+    )
+
+    return {
+        "verified": True,
+        "audit_id": record.audit_id,
+        "device_name": record.hostname or "Unspecified",
+        "vendor": record.vendor,
+        "timestamp": record.timestamp,
+        "security_score": record.security_score,
+        "risk_level": record.risk_level,
+        "compliance_status": compliance_status,
+        "total_findings": record.total_findings,
+        "critical_findings": record.critical_findings,
+        "high_findings": record.high_findings,
+        "medium_findings": record.medium_findings,
+        "low_findings": record.low_findings,
+        "integrity_checksum_sha256": integrity_hash,
+        "verification_timestamp": datetime.now(timezone.utc).isoformat()
+    }
+
+
 @app.post("/api/reports")
 @app.post("/audit/report")
 def create_audit_report(
     data: AuditReportRequest,
-    user: User = Depends(get_current_user)
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
     """
     Generates and returns an audit PDF report containing findings, scores, and QR code.
+    If audit_id exists in the database, canonical records are referenced for integrity.
     """
     audit_id = data.audit_id or f"AUDIT-{datetime.now().strftime('%Y%m%d')}-{uuid4().hex[:6].upper()}"
+
+    device_name = None
+    vendor = data.vendor
+    security_score = data.security_score
+    findings = data.findings
+
+    # Check if a canonical record exists in the database
+    if data.audit_id:
+        record = db.query(AuditRecord).filter(AuditRecord.audit_id == data.audit_id).first()
+        if record:
+            if record.user_id != user.id and user.role != "admin":
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Unauthorized to access this audit record.")
+            device_name = record.hostname
+            vendor = record.vendor
+            security_score = record.security_score
+            if record.findings_json:
+                findings = json.loads(record.findings_json)
 
     # Extract suggestions
     suggestions = data.suggestions
     if not suggestions:
         suggestions = []
-        for finding in data.findings:
+        for finding in findings:
             remediation = finding.get("remediation")
             if remediation and remediation not in suggestions:
                 suggestions.append(remediation)
 
-    # Generate QR code containing audit verification ID
-    qr_file = generate_audit_qr(audit_id)
+    # Compute integrity hash
+    integrity_string = f"{audit_id}:{vendor}:{security_score}"
+    integrity_hash = hashlib.sha256(integrity_string.encode()).hexdigest()
+
+    # Generate QR code containing audit verification URL & hash
+    qr_file = generate_audit_qr(audit_id, integrity_hash=integrity_hash)
 
     # Generate PDF report
     pdf_filename = f"reports/{audit_id}_Report.pdf"
     pdf_file = generate_audit_pdf(
         audit_id=audit_id,
-        vendor=data.vendor,
-        security_score=data.security_score,
-        findings=data.findings,
+        vendor=vendor,
+        security_score=security_score,
+        findings=findings,
         suggestions=suggestions,
         qr_file=qr_file,
-        output_file=pdf_filename
+        output_file=pdf_filename,
+        device_name=device_name,
+        integrity_hash=integrity_hash
     )
 
     return FileResponse(
@@ -625,16 +695,25 @@ def download_audit_report_by_id(
     findings = details.get("findings", [])
     suggestions = [f.get("remediation") for f in findings if f.get("remediation")]
 
-    qr_file = generate_audit_qr(audit_id)
+    vendor = details.get("vendor", "Network Device")
+    security_score = details.get("security_score", 100)
+    device_name = details.get("hostname")
+
+    integrity_string = f"{audit_id}:{vendor}:{security_score}:{details.get('timestamp')}"
+    integrity_hash = hashlib.sha256(integrity_string.encode()).hexdigest()
+
+    qr_file = generate_audit_qr(audit_id, integrity_hash=integrity_hash)
     pdf_filename = f"reports/{audit_id}_Report.pdf"
     pdf_file = generate_audit_pdf(
         audit_id=audit_id,
-        vendor=details.get("vendor", "Network Device"),
-        security_score=details.get("security_score", 100),
+        vendor=vendor,
+        security_score=security_score,
         findings=findings,
         suggestions=suggestions,
         qr_file=qr_file,
-        output_file=pdf_filename
+        output_file=pdf_filename,
+        device_name=device_name,
+        integrity_hash=integrity_hash
     )
 
     return FileResponse(
