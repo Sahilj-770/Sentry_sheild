@@ -53,14 +53,14 @@ export const AuthPage: React.FC<AuthPageProps> = ({
   const handleFillAuditor = () => {
     setView('login');
     setEmail('auditor@aegisnet-sih.gov.in');
-    setPassword('Auditor@2026!');
+    setPassword('CyberSecurity@2025');
     setError(null);
   };
 
   const handleFillAdmin = () => {
     setView('login');
     setEmail('admin@aegisnet-sih.gov.in');
-    setPassword('Admin@2026!');
+    setPassword('AdminSecurity@2025');
     setError(null);
   };
 
@@ -83,7 +83,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
     try {
       if (view === 'login') {
-        const result = await loginUser(email, password);
+        const result = await loginUser(email.trim(), password);
         setSuccessMessage(`Access Granted: Welcome back, ${result.user.name} (${result.user.role.toUpperCase()})`);
         setTimeout(() => {
           onAuthSuccess({
@@ -93,7 +93,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
           });
         }, 600);
       } else {
-        const result = await registerUser(name, email, password);
+        const result = await registerUser(name.trim(), email.trim(), password);
         setSuccessMessage(`Account initialized for ${result.user.name}! Assigned role: AUDITOR.`);
         setTimeout(() => {
           onAuthSuccess({
@@ -295,14 +295,16 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                   <button
                     type="button"
                     onClick={handleFillAuditor}
-                    className="sentry-btn-secondary text-[10px] py-1 px-2 font-mono"
+                    title="Auditor: auditor@aegisnet-sih.gov.in / CyberSecurity@2025"
+                    className="sentry-btn-secondary text-[10px] py-1 px-2.5 font-mono cursor-pointer"
                   >
                     Auditor
                   </button>
                   <button
                     type="button"
                     onClick={handleFillAdmin}
-                    className="sentry-btn-secondary text-[10px] py-1 px-2 font-mono"
+                    title="Admin: admin@aegisnet-sih.gov.in / AdminSecurity@2025"
+                    className="sentry-btn-secondary text-[10px] py-1 px-2.5 font-mono cursor-pointer"
                   >
                     Admin
                   </button>

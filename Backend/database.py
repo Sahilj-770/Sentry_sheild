@@ -87,7 +87,7 @@ def get_db() -> Generator[Session, None, None]:
 def seed_demo_accounts(db: Session, hash_func) -> None:
     """
     Seeds initial demo Auditor and Admin accounts if they do not exist.
-    Passwords are read from environment variables with local defaults.
+    Supports both canonical @aegisnet-sih.gov.in and @sentry-sih.gov.in domain identities.
     """
     demo_auditor_email = os.getenv("DEMO_AUDITOR_EMAIL", "auditor@aegisnet-sih.gov.in")
     demo_auditor_pwd = os.getenv("DEMO_AUDITOR_PASSWORD", "CyberSecurity@2025")
@@ -97,29 +97,28 @@ def seed_demo_accounts(db: Session, hash_func) -> None:
     demo_admin_pwd = os.getenv("DEMO_ADMIN_PASSWORD", "AdminSecurity@2025")
     demo_admin_name = os.getenv("DEMO_ADMIN_NAME", "Chief SecOps Administrator")
 
-    # Check auditor
-    existing_auditor = db.query(User).filter(User.email == demo_auditor_email).first()
-    if not existing_auditor:
-        auditor_user = User(
-            email=demo_auditor_email,
-            name=demo_auditor_name,
-            hashed_password=hash_func(demo_auditor_pwd),
-            role="auditor",
-            is_active=True
-        )
-        db.add(auditor_user)
+    # List of accounts to guarantee
+    accounts_to_seed = [
+        (demo_auditor_email, demo_auditor_name, demo_auditor_pwd, "auditor"),
+        (demo_admin_email, demo_admin_name, demo_admin_pwd, "admin"),
+        ("auditor@sentry-sih.gov.in", demo_auditor_name, demo_auditor_pwd, "auditor"),
+        ("admin@sentry-sih.gov.in", demo_admin_name, demo_admin_pwd, "admin"),
+    ]
 
-    # Check admin
-    existing_admin = db.query(User).filter(User.email == demo_admin_email).first()
-    if not existing_admin:
-        admin_user = User(
-            email=demo_admin_email,
-            name=demo_admin_name,
-            hashed_password=hash_func(demo_admin_pwd),
-            role="admin",
-            is_active=True
-        )
-        db.add(admin_user)
+    for email, name, pwd, role in accounts_to_seed:
+        user = db.query(User).filter(User.email == email).first()
+        if not user:
+            new_user = User(
+                email=email,
+                name=name,
+                hashed_password=hash_func(pwd),
+                role=role,
+                is_active=True
+            )
+            db.add(new_user)
+        else:
+            if not user.is_active:
+                user.is_active = True
 
     db.commit()
 

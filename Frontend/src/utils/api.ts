@@ -3,9 +3,12 @@
 // Structured for easy migration to HttpOnly SameSite cookies
 // ==============================================================================
 
-const API_BASE = import.meta.env.VITE_API_URL !== undefined
-  ? import.meta.env.VITE_API_URL
-  : (typeof window !== 'undefined' && window.location.port === '5173' ? '' : 'http://127.0.0.1:8000');
+const rawApiUrl = (import.meta.env.VITE_API_URL || '').trim();
+const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
+const API_BASE = rawApiUrl
+  ? rawApiUrl.replace(/\/+$/, '')
+  : (isLocalhost && window.location.port !== '8000' ? '' : 'http://127.0.0.1:8000');
 
 const TOKEN_STORAGE_KEY = 'aegisnet_token';
 const USER_STORAGE_KEY = 'aegisnet_user';
@@ -121,17 +124,26 @@ async function apiFetch(endpoint: string, options: RequestInit = {}): Promise<Re
     headers.set('Authorization', `Bearer ${token}`);
   }
 
-  const response = await fetch(url, {
-    ...options,
-    headers
-  });
+  try {
+    const response = await fetch(url, {
+      ...options,
+      headers
+    });
 
-  if (response.status === 401) {
-    // If token expired or invalid, purge local credentials
-    clearAuth();
+    if (response.status === 401) {
+      // If token expired or invalid, purge local credentials
+      clearAuth();
+    }
+
+    return response;
+  } catch (err: any) {
+    if (!isLocalhost) {
+      throw new Error(
+        'Unable to reach backend service. If using Render free tier, the instance may be spinning up (~45s). Please retry in a few seconds.'
+      );
+    }
+    throw err;
   }
-
-  return response;
 }
 
 // ------------------------------------------------------------------------------
@@ -139,11 +151,31 @@ async function apiFetch(endpoint: string, options: RequestInit = {}): Promise<Re
 // ------------------------------------------------------------------------------
 
 export async function loginUser(email: string, password: string): Promise<AuthResponse> {
-  const response = await fetch(`${API_BASE}/api/auth/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password })
-  });
+  const cleanEmail = email.trim();
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: cleanEmail, password })
+    });
+  } catch (err: any) {
+    if (isLocalhost && API_BASE !== 'http://127.0.0.1:8000') {
+      try {
+        response = await fetch('http://127.0.0.1:8000/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: cleanEmail, password })
+        });
+      } catch {
+        throw new Error('Local backend server is not running on port 8000.');
+      }
+    } else {
+      throw new Error(
+        'Unable to connect to the backend server. If hosted on Render free tier, the instance may be waking from sleep (~45s). Please wait a moment and try again.'
+      );
+    }
+  }
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({ detail: 'Authentication failed' }));
@@ -158,11 +190,32 @@ export async function loginUser(email: string, password: string): Promise<AuthRe
 
 export async function registerUser(name: string, email: string, password: string): Promise<AuthResponse> {
   // NOTE: Role is NOT sent by client. Backend permanently assigns "auditor".
-  const response = await fetch(`${API_BASE}/api/auth/register`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, email, password })
-  });
+  const cleanEmail = email.trim();
+  const cleanName = name.trim();
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE}/api/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: cleanName, email: cleanEmail, password })
+    });
+  } catch (err: any) {
+    if (isLocalhost && API_BASE !== 'http://127.0.0.1:8000') {
+      try {
+        response = await fetch('http://127.0.0.1:8000/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: cleanName, email: cleanEmail, password })
+        });
+      } catch {
+        throw new Error('Local backend server is not running on port 8000.');
+      }
+    } else {
+      throw new Error(
+        'Unable to connect to the backend server. If hosted on Render free tier, the instance may be waking from sleep (~45s). Please wait a moment and try again.'
+      );
+    }
+  }
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({ detail: 'Registration failed' }));

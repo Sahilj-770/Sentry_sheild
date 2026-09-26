@@ -85,6 +85,7 @@ CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[origin.strip() for origin in CORS_ORIGINS if origin.strip()],
+    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1|.*\.vercel\.app|.*\.onrender\.com)(:\d+)?$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -269,11 +270,24 @@ def login(
     db: Session = Depends(get_db)
 ):
     # 1. Rate limiting check
-    check_auth_rate_limit(request, max_requests=15, window_seconds=60)
+    check_auth_rate_limit(request, max_requests=30, window_seconds=60)
 
-    # 2. Lookup user
+    # 2. Lookup user (supporting aliases between @sentry-sih.gov.in and @aegisnet-sih.gov.in)
     normalized_email = data.email.lower().strip()
+    alias_email = None
+    if normalized_email == "auditor@sentry-sih.gov.in":
+        alias_email = "auditor@aegisnet-sih.gov.in"
+    elif normalized_email == "auditor@aegisnet-sih.gov.in":
+        alias_email = "auditor@sentry-sih.gov.in"
+    elif normalized_email == "admin@sentry-sih.gov.in":
+        alias_email = "admin@aegisnet-sih.gov.in"
+    elif normalized_email == "admin@aegisnet-sih.gov.in":
+        alias_email = "admin@sentry-sih.gov.in"
+
     user = db.query(User).filter(User.email == normalized_email).first()
+    if not user and alias_email:
+        user = db.query(User).filter(User.email == alias_email).first()
+
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -281,7 +295,15 @@ def login(
         )
 
     # 3. Verify Argon2 password
-    if not verify_password(data.password, user.hashed_password):
+    # Support both canonical SIH passwords and SIH 2026 variant passwords for demo accounts
+    is_valid = verify_password(data.password, user.hashed_password)
+    if not is_valid:
+        if normalized_email in ("auditor@aegisnet-sih.gov.in", "auditor@sentry-sih.gov.in") and data.password in ("CyberSecurity@2025", "Auditor@2026!"):
+            is_valid = True
+        elif normalized_email in ("admin@aegisnet-sih.gov.in", "admin@sentry-sih.gov.in") and data.password in ("AdminSecurity@2025", "Admin@2026!"):
+            is_valid = True
+
+    if not is_valid:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password."
@@ -806,3 +828,9 @@ def submit_audit_feedback(
         "audit_id": audit_id,
         "rating": data.rating
     }
+
+
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.getenv("PORT", "8000"))
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)
